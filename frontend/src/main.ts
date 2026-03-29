@@ -151,7 +151,7 @@ function logResult(
   explanation: string
 ) {
   auditLog.push(
-console.log(auditLog[auditLog.length - 1]),{
+  console.log(auditLog[auditLog.length - 1]),{
     
     time: new Date().toISOString(),
     panel,
