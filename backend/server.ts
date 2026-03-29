@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (_req: Request, res: Response) => {
-  res.send("AOAL backend alive");
+res.send("AOAL backend alive + summary test");  
 });
 
 app.post("/evaluate", (req: Request, res: Response) => {
@@ -48,6 +48,19 @@ app.post("/evaluate", (req: Request, res: Response) => {
     : `🔴 DEVIATION | Confidence: ${priority}% | Mode: ${mode}`;
 
   res.json({ result, priority, explanation });
+});
+
+app.get("/summary", (_req: Request, res: Response) => {
+  const summary = {
+    topPriorityTitle: "Policy Threshold Breach",
+    topPriorityScore: 91,
+    topPrioritySource: "Rule Engine",
+    topPrioritySourceReason: "Score exceeded critical threshold",
+    totalEvents: 12,
+    totalAlerts: 3,
+  };
+
+  res.json(summary);
 });
 
 app.listen(3001, () => {
