@@ -1,10 +1,13 @@
 import './style.css'
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
+  <div style="max-width: 1100px; margin: 0 auto; padding: 24px; font-family: Arial, sans-serif;">
     <h1>AOAL Dashboard</h1>
+    <p style="color: #bbb;">
+      AOAL evaluates inputs against policy, prioritizes resulting events, and displays current system state.
+    </p>
 
-    <div id="evaluate-panel" style="padding:16px;border:1px solid #444;margin-top:12px;">
+    <div id="evaluate-panel" style="padding:16px;border:1px solid #444;margin-top:12px;border-radius:8px;">
       <h2 style="margin-top: 0; color: #8ec5ff;">Evaluate Input</h2>
 
       <label for="aoal-input"><strong>Input</strong></label>
@@ -12,7 +15,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <textarea
         id="aoal-input"
         rows="4"
-        style="width:100%;margin-top:8px;padding:8px;"
+        style="width:100%;margin-top:8px;padding:8px;box-sizing:border-box;"
         placeholder="Enter text to evaluate against policy..."
       ></textarea>
 
@@ -26,7 +29,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </div>
 
       <div style="margin-top:12px;">
-        <button id="evaluate-button" style="padding:10px 16px;cursor:pointer;">
+        <button id="evaluate-button" type="button" style="padding:10px 16px;cursor:pointer;">
           Evaluate
         </button>
       </div>
@@ -36,15 +39,15 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </div>
     </div>
 
-    <div id="summary" style="padding:16px;border:1px solid #444;margin-top:12px;">
+    <div id="summary" style="padding:16px;border:1px solid #444;margin-top:12px;border-radius:8px;">
       Loading summary...
     </div>
 
-    <div id="timeline" style="padding:16px;border:1px solid #444;margin-top:12px;">
+    <div id="timeline" style="padding:16px;border:1px solid #444;margin-top:12px;border-radius:8px;">
       Loading timeline...
     </div>
 
-    <div id="architecture" style="padding:16px;border:1px solid #444;margin-top:12px;">
+    <div id="architecture" style="padding:16px;border:1px solid #444;margin-top:12px;border-radius:8px;">
       Loading architecture...
     </div>
   </div>
@@ -108,8 +111,7 @@ function loadArchitecture() {
   if (architectureDiv) {
     architectureDiv.innerHTML = `
       <h2 style="margin-top: 0; color: #8ec5ff;">AOAL Architecture</h2>
-
-      <div style="display:flex;flex-direction:column;gap:10px;max-width:300px;">
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:320px;">
         <div style="border:1px solid #666;padding:10px;text-align:center;">Signal Sources</div>
         <div style="text-align:center;">↓</div>
         <div style="border:1px solid #666;padding:10px;text-align:center;">Policy Evaluation Engine</div>
@@ -163,7 +165,13 @@ async function evaluateInput() {
       <p><strong>Result:</strong> ${data.result}</p>
       <p><strong>Priority:</strong> ${data.priority}</p>
       <p><strong>Explanation:</strong> ${data.explanation}</p>
+      <p style="color:#8ec5ff;"><strong>Event recorded. Summary updated.</strong></p>
     `;
+
+    inputEl.value = "";
+
+    await loadSummary();
+    await loadTimeline();
   } catch (err) {
     console.error("Failed to evaluate input", err);
     resultDiv.innerHTML = `<p><strong>Evaluation failed.</strong></p>`;
