@@ -5,7 +5,10 @@ import path from "path";
 
 const app = express();
 const LOGS_FILE = path.join(process.cwd(), "logs.json");
+const POLICY_FILE = path.join(process.cwd(), "policy.json");
+
 console.log("LOGS FILE PATH:", LOGS_FILE);
+console.log("POLICY FILE PATH:", POLICY_FILE);
 
 app.use(cors());
 app.use(express.json());
@@ -17,6 +20,16 @@ type LogEvent = {
   source: string;
   score: number;
   level: string;
+  explanation: string;
+};
+
+type PolicyRule = {
+  name: string;
+  keywords: string[];
+  priority_strict: number;
+  priority_adaptive: number;
+  level: string;
+  action?: string;
   explanation: string;
 };
 
@@ -73,8 +86,27 @@ function saveLogsToFile(logs: LogEvent[]) {
   }
 }
 
-let logs: LogEvent[] = loadLogsFromFile(); 
+function loadPolicy(): PolicyRule[] {
+  try {
+    if (fs.existsSync(POLICY_FILE)) {
+      const fileContents = fs.readFileSync(POLICY_FILE, "utf-8");
+      const parsed = JSON.parse(fileContents);
+
+      if (parsed.rules && Array.isArray(parsed.rules)) {
+        return parsed.rules;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to load policy file:", error);
+  }
+
+  return [];
+}
+
+let logs: LogEvent[] = loadLogsFromFile();
 saveLogsToFile(logs);
+
+let policyRules: PolicyRule[] = loadPolicy();
 
 app.get("/", (_req: Request, res: Response) => {
   res.send("AOAL backend alive + summary");
@@ -86,51 +118,46 @@ app.post("/evaluate", (req: Request, res: Response) => {
   const input: string = (req.body.input || "").toLowerCase();
   const mode: string = (req.body.mode || "strict").toLowerCase();
 
-  const hasPolicy = input.includes("policy");
-  const hasAligned = input.includes("aligned");
-  const aligned = hasPolicy || hasAligned;
+  let matchedRule: PolicyRule | null = null;
 
-  let priority = 0;
-  let explanation = "";
-
-  if (mode === "adaptive") {
-    if (aligned) {
-      priority = 75;
-      explanation = hasPolicy
-        ? "Matched policy keyword. Adaptive mode applied moderate confidence."
-        : "Matched aligned keyword. Adaptive mode applied moderate confidence.";
-    } else {
-      priority = 45;
-      explanation =
-        "No alignment terms found. Adaptive mode reduced severity of deviation.";
+  for (const rule of policyRules) {
+    for (const keyword of rule.keywords) {
+      if (input.includes(keyword.toLowerCase())) {
+        matchedRule = rule;
+        break;
+      }
     }
-  } else {
-    if (aligned) {
-      priority = 90;
-      explanation = hasPolicy
-        ? "Matched policy keyword. Strict mode applied high confidence."
-        : "Matched aligned keyword. Strict mode applied high confidence.";
-    } else {
-      priority = 30;
-      explanation =
-        "No alignment terms found. Strict mode applied stronger deviation penalty.";
-    }
+    if (matchedRule) break;
   }
 
-  const result = aligned
-    ? `🟢 ALIGNED | Confidence: ${priority}% | Mode: ${mode}`
-    : `🔴 DEVIATION | Confidence: ${priority}% | Mode: ${mode}`;
+  let priority = 20;
+  let explanation = "No policy rule matched. Review may be needed.";
+  let level = "warn";
+  let title = "No Rule Match";
 
-  let level = "info";
-  if (priority >= 85) {
-    level = "critical";
-  } else if (priority >= 70) {
-    level = "alert";
-  } else if (priority >= 40) {
-    level = "warn";
+  if (matchedRule) {
+    priority =
+      mode === "adaptive"
+        ? matchedRule.priority_adaptive
+        : matchedRule.priority_strict;
+
+    explanation = matchedRule.explanation;
+    level = matchedRule.level;
+    title = matchedRule.name;
   }
+let decision = "ALLOW";
 
-  const title = aligned ? "Aligned input evaluated" : "Deviation detected";
+if (!matchedRule) {
+  decision = "WARN";
+} else if (matchedRule.action) {
+  decision = matchedRule.action.toUpperCase();
+} else if (priority >= 70) {
+  decision = "BLOCK";
+} else if (priority >= 40) {
+  decision = "WARN";
+}
+  console.log("MATCHED RULE:", matchedRule);
+  const result = `${decision} | Score: ${priority} | Mode: ${mode}`;
 
   const newLog: LogEvent = {
     id: Date.now().toString(),
@@ -149,7 +176,7 @@ app.post("/evaluate", (req: Request, res: Response) => {
   console.log("NEW LOG ADDED:", newLog);
   console.log("LOG COUNT:", logs.length);
 
-  res.json({ result, priority, explanation });
+  res.json({ result, priority, explanation, decision });
 });
 
 app.get("/summary", (_req: Request, res: Response) => {
@@ -170,8 +197,115 @@ app.get("/summary", (_req: Request, res: Response) => {
   res.json(summary);
 });
 
+app.get("/status", (_req: Request, res: Response) => {
+  let status = "NORMAL";
+
+  const hasBlock = logs.some((log) => log.level === "critical");
+  const hasAlert = logs.some((log) => log.level === "alert");
+
+  if (hasBlock) {
+    status = "CRITICAL";
+  } else if (hasAlert) {
+    status = "ALERT";
+  }
+
+  res.json({ status });
+});
+
 app.get("/logs", (_req: Request, res: Response) => {
   res.json(logs);
+});
+
+app.get("/export-logs", (_req: Request, res: Response) => {
+  try {
+    res.download(LOGS_FILE, "aoal-logs.json");
+  } catch (error) {
+    console.error("Failed to export logs:", error);
+    res.status(500).json({ error: "Failed to export logs" });
+  }
+});
+
+app.get("/policy", (_req: Request, res: Response) => {
+  res.json(policyRules);
+});
+
+app.post("/policy", (req: Request, res: Response) => {
+  try {
+    const newRules = req.body;
+
+    fs.writeFileSync(
+      POLICY_FILE,
+      JSON.stringify({ rules: newRules }, null, 2),
+      "utf-8"
+    );
+
+    policyRules = loadPolicy();
+
+    res.json({ status: "Policy updated" });
+  } catch (error) {
+    console.error("Failed to save policy:", error);
+    res.status(500).json({ error: "Failed to save policy" });
+  }
+});
+
+app.get("/incident-report", (_req: Request, res: Response) => {
+  try {
+    const topEvent = [...logs].sort((a, b) => b.score - a.score)[0];
+
+    let status = "NORMAL";
+    const hasCritical = logs.some((log) => log.level === "critical");
+    const hasAlert = logs.some((log) => log.level === "alert");
+
+    if (hasCritical) {
+      status = "CRITICAL";
+    } else if (hasAlert) {
+      status = "ALERT";
+    }
+
+    const totalEvents = logs.length;
+    const totalAlerts = logs.filter(
+      (log) => log.level === "alert" || log.level === "critical"
+    ).length;
+
+    const recentEvents = logs.slice(0, 5);
+
+    const report = `
+AOAL INCIDENT REPORT
+====================
+
+Generated: ${new Date().toLocaleString()}
+
+System Status: ${status}
+
+Top Priority Event:
+- Title: ${topEvent?.title ?? "None"}
+- Score: ${topEvent?.score ?? 0}
+- Source: ${topEvent?.source ?? "Unknown"}
+- Explanation: ${topEvent?.explanation ?? "No explanation available"}
+
+Totals:
+- Total Events: ${totalEvents}
+- Total Alerts: ${totalAlerts}
+
+Recent Events:
+${recentEvents
+  .map(
+    (log, index) => `${index + 1}. [${log.timestamp}] ${log.title}
+   Score: ${log.score}
+   Level: ${log.level}
+   Source: ${log.source}
+   Explanation: ${log.explanation}`
+  )
+  .join("\n\n")}
+`.trim();
+
+    res.setHeader("Content-Type", "text/plain");
+    res.setHeader("Content-Disposition", 'attachment; filename="aoal-incident-report.txt"');
+    res.send(report);
+  } catch (error) {
+    console.error("Failed to generate incident report:", error);
+    res.status(500).json({ error: "Failed to generate incident report" });
+  }
 });
 
 app.listen(3001, () => {

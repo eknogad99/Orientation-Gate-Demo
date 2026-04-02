@@ -1,0 +1,43 @@
+{
+  "rules": [
+    {
+      "name": "Policy Alignment",
+      "keywords": [
+        "policy",
+        "aligned",
+        "approved"
+      ],
+      "priority_strict": 90,
+      "priority_adaptive": 75,
+      "level": "info",
+      "action": "allow",
+      "explanation": "Input matches policy alignment terms."
+    },
+    {
+      "name": "Potential Deviation",
+      "keywords": [
+        "deviation",
+        "misaligned",
+        "override"
+      ],
+      "priority_strict": 85,
+      "priority_adaptive": 70,
+      "level": "warn",
+      "action": "block",
+      "explanation": "Input indicates potential deviation."
+    },
+    {
+      "name": "Delay / Timing Change",
+      "keywords": [
+        "delay",
+        "postpone",
+        "reschedule"
+      ],
+      "priority_strict": 45,
+      "priority_adaptive": 35,
+      "level": "warn",
+      "action": "warn",
+      "explanation": "Schedule or timing changes may require review."
+    }
+  ]
+}
