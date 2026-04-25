@@ -1,103 +1,94 @@
 import './style.css'
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div style="max-width: 1200px; margin: 0 auto; padding: 24px; font-family: Arial, sans-serif;">
-    <h1>AOAL Dashboard</h1>
-    <p style="color: #bbb;">
-      AOAL evaluates inputs against policy, prioritizes resulting events, and displays current system state.
-    </p>
+<div style="max-width: 1200px; margin: 0 auto; padding: 24px; font-family: Arial, sans-serif;">
+  <h1>Orientation Gate Dashboard</h1>
+  <p style="color:#bbb;">
+    Orientation Gate evaluates proposed actions before execution and determines whether they should be allowed, warned, or blocked.
+  </p>
 
-    <div style="display: flex; gap: 12px; margin-top: 12px;">
-      <div id="evaluate-panel" style="flex: 1; padding:16px;border:1px solid #444;border-radius:8px;">
-        <h2 style="margin-top: 0; color: #8ec5ff;">Evaluate Input</h2>
+  <div style="display:flex; gap:12px; margin-top:12px;">
+    <div id="evaluate-panel" style="flex:1; padding:16px; border:1px solid #444; border-radius:8px;">
+      <h2 style="margin-top:0;color:#8ec5ff;">Proposed Action</h2>
 
-        <label for="aoal-input"><strong>Input</strong></label>
-        <br />
-        <textarea
-          id="aoal-input"
-          rows="4"
-          style="width:100%;margin-top:8px;padding:8px;box-sizing:border-box;"
-          placeholder="Enter text to evaluate against policy..."
-        ></textarea>
+      <label><strong>Action</strong></label>
+      <textarea id="aoal-input" rows="4" style="width:100%; margin-top:8px; padding:8px;"></textarea>
 
-        <div style="margin-top:12px;">
-          <label for="aoal-mode"><strong>Mode</strong></label>
-          <br />
-          <select id="aoal-mode" style="margin-top:8px;padding:8px;">
-            <option value="strict">strict</option>
-            <option value="adaptive">adaptive</option>
-          </select>
-        </div>
+      <div style="margin-top:12px;">
+        <label><strong>Mode</strong></label><br/>
+        <select id="aoal-mode" style="margin-top:8px; padding:8px;">
+          <option value="strict">strict</option>
+          <option value="adaptive">adaptive</option>
+        </select>
+      </div>
 
-        <div style="margin-top:12px;">
-          <button id="evaluate-button" type="button" style="padding:10px 16px;cursor:pointer;">
-            Evaluate
-          </button>
-        </div>
-
-        <div style="margin-top:12px;">
-          <button id="export-button" type="button" style="padding:10px 16px;cursor:pointer;">
-            Export Logs
-          </button>
-        </div>
-        
-        <div style="margin-top:12px;">
-          <button id="incident-report-button" type="button" style="padding:10px 16px;cursor:pointer;">
-            Generate Incident Report
-          </button>
-        </div>
-
-        <div style="margin-top:12px;">
-  <button id="scenario-alignment" type="button" style="padding:10px 16px;cursor:pointer; margin-right:8px;">
-    Run Alignment Scenario
+      <div style="margin-top:12px;">
+  <button id="evaluate-button" type="button">
+    Evaluate Action
   </button>
-  <button id="scenario-deviation" type="button" style="padding:10px 16px;cursor:pointer; margin-right:8px;">
-    Run Deviation Scenario
+
+  <button id="export-button" type="button">
+    Export Audit Logs
   </button>
-  <button id="scenario-mixed" type="button" style="padding:10px 16px;cursor:pointer; margin-right:8px;">
-    Run Mixed Scenario
-  </button>
-  <button id="scenario-incident" type="button" style="padding:10px 16px;cursor:pointer;">
-    Run Incident Scenario
+
+  <button id="incident-report-button" type="button">
+    Generate Incident Report
   </button>
 </div>
-
-        <div id="evaluate-result" style="margin-top:16px;">
-          No evaluation yet.
-        </div>
+      <div style="margin-top:12px;">
+        <button id="scenario-alignment">Alignment Scenario</button>
+        <button id="scenario-deviation">Deviation Scenario</button>
+        <button id="scenario-mixed">Mixed Scenario</button>
+        <button id="scenario-incident" type="button" style="padding:10px 16px; cursor:pointer;">
+          Run Incident Scenario
+        </button>
       </div>
 
-      <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
-        <div id="status" style="padding:16px;border:1px solid #444;border-radius:8px;">
-          Loading status...
-        </div>
-
-        <div id="summary" style="padding:16px;border:1px solid #444;border-radius:8px;">
-          Loading summary...
-        </div>
+      <div id="evaluate-result" style="margin-top:16px;">
+        No evaluation yet.
       </div>
     </div>
 
-    <div id="timeline" style="padding:16px;border:1px solid #444;margin-top:12px;border-radius:8px;">
-      Loading timeline...
-    </div>
 
-    <div id="architecture" style="padding:16px;border:1px solid #444;margin-top:12px;border-radius:8px;">
-      Loading architecture...
-    </div>
+    <div style="flex:1; display:flex; flex-direction:column; gap:12px;">
+      <div id="status" style="padding:16px; border:1px solid #444; border-radius:8px;">
+        <h2 style="margin-top:0;color:#8ec5ff;">System Status</h2>
+      </div>
 
-    <div id="policy" style="padding:16px;border:1px solid #444;margin-top:12px;border-radius:8px;">
-      Loading policy...
+      <div id="trend" style="padding:16px; border:1px solid #444; border-radius:8px;">
+        <h2 style="margin-top:0;color:#8ec5ff;">Trend</h2>
+      </div>
+
+      <div id="summary" style="padding:16px; border:1px solid #444; border-radius:8px;">
+        <h2 style="margin-top:0;color:#8ec5ff;">System Summary</h2>
+      </div>
     </div>
   </div>
+
+  <div id="timeline" style="padding:16px; border:1px solid #444; border-radius:8px; margin-top:12px;">
+    <h2 style="margin-top:0;color:#8ec5ff;">Event Timeline</h2>
+  </div>
+
+  <div id="policy" style="padding:16px; border:1px solid #444; border-radius:8px; margin-top:12px;">
+    <h2 style="margin-top:0;color:#8ec5ff;">Orientation Rules</h2>
+  </div>
+
+  <div id="architecture" style="padding:16px; border:1px solid #444; border-radius:8px; margin-top:12px;">
+    <h2 style="margin-top:0;color:#8ec5ff;">Architecture</h2>
+  </div>
+</div>
 `;
 
-async function loadStatus() {
+console.log("LoadSystemStatus running");
+console.log("Loading System Status");
+async function loadSystemStatus() {
   try {
+
     const res = await fetch("http://localhost:3001/status");
     const data = await res.json();
 
     const statusDiv = document.getElementById("status");
+
     if (!statusDiv) return;
 
     let color = "#4caf50";
@@ -114,8 +105,38 @@ async function loadStatus() {
     console.error("Failed to load status", err);
   }
 }
+console.log("LoadTrend running");
+console.log("Loading Trend");
+async function loadTrend() {
+  try {
+    const res = await fetch("http://localhost:3001/trend");
+    const data = await res.json();
 
-async function loadSummary() {
+    const trendDiv = document.getElementById("trend");
+    if (!trendDiv) return;
+
+    let color = "#aaa";
+    if (data.trend === "RISING") color = "#ff4d4d";
+    if (data.trend === "FALLING") color = "#4caf50";
+    if (data.trend === "STABLE") color = "#ffa500";
+
+    trendDiv.innerHTML = `
+      <h3>Trend</h3>
+      <p><strong>Rolling Average Score:</strong> ${data.rollingAverage}</p>
+      <p><strong>Trend:</strong> 
+        <span style="color:${color}; font-weight:bold;">
+          ${data.trend}
+        </span>
+      </p>
+    `;
+  } catch (err) {
+    console.error("Failed to load trend", err);
+  }
+}
+
+console.log("LoadSystemSummary running");
+console.log("Loading System Summary");
+async function loadSystemSummary() {
   try {
     const res = await fetch("http://localhost:3001/summary");
     const data = await res.json();
@@ -136,95 +157,62 @@ async function loadSummary() {
     const now = new Date().toLocaleString();
 
     summaryDiv.innerHTML = `
-      <h2 style="margin-top: 0; color: #8ec5ff;">Summary</h2>
+      <h2 style="margin-top: 0; color: #8ec5ff;">System Summary</h2>
       <p><strong>Top Priority:</strong> ${data.topPriorityTitle}</p>
-      <p><strong>Score:</strong> <span style="color: ${scoreColor};">${data.topPriorityScore}</span></p>
+      <p><strong>Score:</strong> <span style="color:${scoreColor};">${data.topPriorityScore}</span></p>
       <p><strong>Primary Source:</strong> ${data.topPrioritySource}</p>
       <p><strong>Reason:</strong> ${data.topPrioritySourceReason}</p>
       <p><strong>Total Events:</strong> ${data.totalEvents}</p>
       <p><strong>Total Alerts:</strong> ${data.totalAlerts}</p>
       <p><em>Last updated: ${now}</em></p>
-      
     `;
   } catch (err) {
     console.error("Failed to load summary", err);
   }
 }
 
-async function loadTimeline() {
+console.log("loadEventTimeline running");
+console.log("Loading Event Timeline");
+async function loadEventTimeline() {
   try {
     const res = await fetch("http://localhost:3001/logs");
     const logs = await res.json();
 
     const timelineDiv = document.getElementById("timeline");
+    if (!timelineDiv) return;
 
-    if (timelineDiv) {
-     const items = logs.map((log: any) => {
-  let borderColor = "#666";
+    let html = `<h2 style="margin-top:0;color:#8ec5ff;">Event Timeline</h2>`;
 
-  if (log.level === "critical") borderColor = "#ff4d4d";
-  else if (log.level === "alert") borderColor = "#ffa500";
-  else if (log.level === "warn") borderColor = "#ffd700";
-  else borderColor = "#888";
-
-  return `
-    <div style="padding:12px;border:2px solid ${borderColor};margin-bottom:10px;border-radius:8px;">
-      <p><strong>${log.title}</strong></p>
-      <p><strong>Time:</strong> ${log.timestamp}</p>
-      <p><strong>Source:</strong> ${log.source}</p>
-      <p><strong>Score:</strong> ${log.score}</p>
-      <p><strong>Level:</strong> ${log.level}</p>
-      <p><strong>Action:</strong><br/>
-      </div>
-  `;
-}).join("");
-
-      timelineDiv.innerHTML = `
-        <h2 style="margin-top: 0; color: #8ec5ff;">Event Timeline</h2>
-        ${items}
+    logs.slice(0, 10).forEach((log: any) => {
+      html += `
+        <div style="margin-bottom:12px;padding:8px;border:1px solid #333;border-radius:6px;">
+          <p><strong>${log.title}</strong></p>
+          <p>${log.timestamp}</p>
+          <p>Score: ${log.score}</p>
+          <p>Level: ${log.level}</p>
+          <p>${log.explanation}</p>
+        </div>
       `;
-    }
+    });
+
+    timelineDiv.innerHTML = html;
   } catch (err) {
     console.error("Failed to load timeline", err);
   }
 }
-
-function loadArchitecture() {
-  const architectureDiv = document.getElementById("architecture");
-
-  if (architectureDiv) {
-    architectureDiv.innerHTML = `
-      <h2 style="margin-top: 0; color: #8ec5ff;">AOAL Architecture</h2>
-      <div style="display:flex;flex-direction:column;gap:10px;max-width:320px;">
-        <div style="border:1px solid #666;padding:10px;text-align:center;">Signal Sources</div>
-        <div style="text-align:center;">↓</div>
-        <div style="border:1px solid #666;padding:10px;text-align:center;">Policy Evaluation Engine</div>
-        <div style="text-align:center;">↓</div>
-        <div style="border:1px solid #666;padding:10px;text-align:center;">Priority Score</div>
-        <div style="text-align:center;">↓</div>
-        <div style="border:1px solid #666;padding:10px;text-align:center;">Alert Threshold</div>
-        <div style="text-align:center;">↓</div>
-        <div style="border:1px solid #666;padding:10px;text-align:center;">Explanation</div>
-        <div style="text-align:center;">↓</div>
-        <div style="border:1px solid #666;padding:10px;text-align:center;">Dashboard Display</div>
-        <div style="text-align:center;">↓</div>
-        <div style="border:1px solid #666;padding:10px;text-align:center;">Event Logs</div>
-        <div style="text-align:center;">↓</div>
-        <div style="border:1px solid #666;padding:10px;text-align:center;">Export Audit Trail</div>
-      </div>
-    `;
-  }
-}
-async function loadPolicy() {
+console.log("loadOrientationRules running");
+console.log("Loading Orientation Rules");
+async function loadOrientationRules() {
   try {
     const res = await fetch("http://localhost:3001/policy");
     let rulesData = await res.json();
 
     const policyDiv = document.getElementById("policy");
+
     if (!policyDiv) return;
 
     function renderPolicyEditor() {
-      let html = `<h2 style="margin-top:0;color:#8ec5ff;">Policy Rules</h2>`;
+      let html = `<h2 style="margin-top:0;color:#8ec5ff;">Orientation Rules</h2>`;
 
       rulesData.forEach((rule: any, index: number) => {
         html += `
@@ -331,11 +319,35 @@ async function loadPolicy() {
     console.error("Failed to load policy", err);
   }
 }
+console.log("LoadArchitecture running")
+console.log("Loading Architecture");
+function loadArchitecture() {
+  const architectureDiv = document.getElementById("architecture");
+  if (!architectureDiv) return;
 
-  async function evaluateInput() {
+  architectureDiv.innerHTML = `
+    <h2 style="margin-top:0;color:#8ec5ff;">Orientation Gate Architecture</h2>
+    <pre style="white-space:pre-wrap; line-height:1.5;">
+Proposed Action
+      ↓
+Orientation Gate
+(Policy / Risk / Cost / Authority Checks)
+      ↓
+Allow | Warn | Block
+      ↓
+Execution Layer
+      ↓
+Logs / Timeline / Reports
+    </pre>
+  `;
+}
+
+
+async function evaluateInput() {
   const inputEl = document.getElementById("aoal-input") as HTMLTextAreaElement | null;
   const modeEl = document.getElementById("aoal-mode") as HTMLSelectElement | null;
   const resultDiv = document.getElementById("evaluate-result");
+  const [isEvaluating, setIsEvaluating] = useState(false);
 
   if (!inputEl || !modeEl || !resultDiv) return;
 
@@ -343,14 +355,12 @@ async function loadPolicy() {
   const mode = modeEl.value;
 
   if (!input) {
-    resultDiv.innerHTML = `<p><strong>Please enter some input first.</strong></p>`;
+    resultDiv.innerHTML = `<p><strong>Please enter a proposed action.</strong></p>`;
     return;
   }
 
-  resultDiv.innerHTML = `<p>Evaluating...</p>`;
-
   try {
-    const res = await fetch("http://localhost:3001/evaluate", {
+    const res = await fetch("https://ventricle-visibly-tricky.ngrok-free.dev/evaluate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -359,45 +369,49 @@ async function loadPolicy() {
     });
 
     const data = await res.json();
+    setDecision(data);
+    setIsEvaluating(false);
+  };
 
-    let decisionColor = "#aaa";
-if (data.decision === "BLOCK") decisionColor = "#ff4d4d";
-else if (data.decision === "WARN") decisionColor = "#ffa500";
-else if (data.decision === "ALLOW") decisionColor = "#4caf50";
+  { isEvaluating && <div>Evaluating pre - execution risk...</div> }
 
-resultDiv.innerHTML = `
-  <p><strong>Decision:</strong> 
-    <span style="color:${decisionColor}; font-weight:bold;">
-      ${data.decision}
-    </span>
-  </p>
-  <p><strong>Score:</strong> ${data.priority}</p>
-  <p><strong>Explanation:</strong> ${data.explanation}</p>
-`;
-
-    inputEl.value = "";
-
-    await loadStatus;
-    await loadSummary();
-    await loadTimeline();
-  } catch (err) {
-    console.error("Failed to evaluate input", err);
-    resultDiv.innerHTML = `<p><strong>Evaluation failed.</strong></p>`;
+  {
+    decision && (
+      <div>
+      <h3>Pre - Execution Decision: { decision.decision } </h3>
+        < p > { decision.reason } </p>
+        </div>
+)
   }
+
+  let decisionColor = "#aaa";
+  if (data.decision === "BLOCK") decisionColor = "#ff4d4d";
+  else if (data.decision === "WARN") decisionColor = "#ffa500";
+  else if (data.decision === "ALLOW") decisionColor = "#4caf50";
+
+  resultDiv.innerHTML = `
+      <h3>Orientation Gate Decision</h3>
+      <p><strong>Decision:</strong>
+        <span style="color:${decisionColor}; font-weight:bold;">
+          ${data.decision}
+        </span>
+      </p>
+      <p><strong>Score:</strong> ${data.priority}</p>
+      <p><strong>Explanation:</strong> ${data.explanation}</p>
+    `;
+
+  inputEl.value = "";
+
+  await loadStatus();
+  await loadTrend();
+  await loadSystemSummary();
+  await loadEventTimeline();
+} catch (err) {
+  console.error("Failed to evaluate input", err);
+  resultDiv.innerHTML = `<p><strong>Evaluation failed.</strong></p>`;
 }
-function generateIncidentReport() {
-  window.open("http://localhost:3001/incident-report", "_blank");
 }
 
-async function runSingleEvaluation(input: string, mode: string) {
-  await fetch("http://localhost:3001/evaluate", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ input, mode })
-  });
-}
 async function runScenario(inputs: string[], mode: string, label: string) {
   const resultDiv = document.getElementById("evaluate-result");
   if (resultDiv) {
@@ -410,26 +424,75 @@ async function runScenario(inputs: string[], mode: string, label: string) {
 
   if (resultDiv) {
     resultDiv.innerHTML = `<p><strong>Scenario completed:</strong> ${label}</p>`;
-  }
 
+  }
   await loadStatus();
-  await loadSummary();
-  await loadTimeline();
+  await loadTrend();
+  await loadSystemSummary();
+  await loadEventTimeline();
+
 }
+
+async function loadStatus() {
+  const statusDiv = document.getElementById("status");
+  if (!statusDiv) return;
+
+  statusDiv.innerHTML = `
+    <h2 style="margin-top:0;color:#8ec5ff;">System Status</h2>
+    <p style="color:#ff4d4d;"><strong>CRITICAL</strong></p>
+    <p>Orientation risk detected in recent evaluations.</p>
+  `;
+}
+
+function generateIncidentReport() {
+  const report = `
+INCIDENT REPORT
+--------------------------
+System: Orientation Gate
+Date: ${new Date().toLocaleString()}
+
+Summary:
+A sequence of actions triggered multiple policy violations.
+Orientation Gate blocked high-risk actions and logged all events.
+
+System Behavior:
+- Evaluated proposed actions
+- Applied policy rules
+- Blocked unsafe operations
+- Logged events
+- Updated timeline and summary
+
+Outcome:
+System prevented execution of misaligned actions and maintained operational integrity.
+`;
+
+  const blob = new Blob([report], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "incident-report.txt";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
 
 function exportLogs() {
   window.open("http://localhost:3001/export-logs", "_blank");
 }
 
-
-loadSummary();
-loadTimeline();
-loadArchitecture();
-loadPolicy();
 loadStatus();
+loadTrend();
+loadSystemSummary();
+loadEventTimeline();
+loadOrientationRules();
+loadArchitecture();
 
 
 const evaluateButton = document.getElementById("evaluate-button");
+console.log("evaluate button found:", evaluateButton);
+
 if (evaluateButton) {
   evaluateButton.addEventListener("click", evaluateInput);
 }
@@ -438,6 +501,7 @@ const exportButton = document.getElementById("export-button");
 if (exportButton) {
   exportButton.addEventListener("click", exportLogs);
 }
+
 
 const alignmentScenarioButton = document.getElementById("scenario-alignment");
 if (alignmentScenarioButton) {
@@ -486,8 +550,12 @@ if (mixedScenarioButton) {
 }
 
 const incidentScenarioButton = document.getElementById("scenario-incident");
+console.log("incident button found:", incidentScenarioButton);
+
 if (incidentScenarioButton) {
   incidentScenarioButton.addEventListener("click", async () => {
+    console.log("Incident Scenario button clicked");
+
     await runScenario(
       [
         "Override system policy.",
@@ -506,3 +574,4 @@ const incidentReportButton = document.getElementById("incident-report-button");
 if (incidentReportButton) {
   incidentReportButton.addEventListener("click", generateIncidentReport);
 }
+
