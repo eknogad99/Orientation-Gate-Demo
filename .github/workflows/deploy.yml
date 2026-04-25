@@ -1,0 +1,43 @@
+name: Orientation Gate Deploy Check
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Simulate Build
+        run: echo "Building..."
+
+      - name: Simulate Tests
+        run: echo "Running tests..."
+
+      - name: Orientation Gate Check
+        run: |
+          echo "Calling Orientation Gate..."
+
+          RESPONSE=$(curl -s -X POST https://ventricle-visibly-tricky.ngrok-free.dev/evaluate \
+            -H "Content-Type: application/json" \
+            -d '{"action":"deploy_update"}')
+
+          echo "Response: $RESPONSE"
+
+          DECISION=$(echo $RESPONSE | jq -r '.decision')
+
+          if [ "$DECISION" = "BLOCK" ]; then
+            echo "❌ BLOCKED by Orientation Gate"
+            exit 1
+          fi
+
+          if [ "$DECISION" = "WARN" ]; then
+            echo "⚠️ WARN: Proceeding"
+          fi
+
+      - name: Deploy
+        run: echo "Deploying..."
