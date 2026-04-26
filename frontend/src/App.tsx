@@ -21,8 +21,6 @@ export default function App() {
             setIsEvaluating(true);
             setDecision(null);
 
-            await new Promise((resolve) => setTimeout(resolve, 1200));
-
             const response = await fetch("http://localhost:3001/evaluate", {
                 method: "POST",
                 headers: {
@@ -33,7 +31,7 @@ export default function App() {
 
             const data = await response.json();
             setDecision(data);
-        } catch (error) {
+        } catch {
             setDecision({
                 decision: "ERROR",
                 reason: "Failed to reach backend",
@@ -50,64 +48,42 @@ export default function App() {
     };
 
     return (
-        <div style={{ padding: "2rem", fontFamily: "Arial, sans-serif" }}>
+        <div
+            style={{
+                padding: "2rem",
+                fontFamily: "Arial, sans-serif",
+                maxWidth: "900px",
+                margin: "0 auto",
+                background: "#0b1020",
+                color: "white",
+                minHeight: "100vh",
+            }}
+        >
             <h1>Orientation Gate Demo</h1>
             <p>Pre-Execution Decision Layer</p>
 
             <div style={{ marginBottom: "1rem" }}>
                 <label>System State: </label>
-                <select
-                    value={systemState}
-                    onChange={(e) => setSystemState(e.target.value)}
-                >
+                <select value={systemState} onChange={(e) => setSystemState(e.target.value)}>
                     <option value="stable">Stable</option>
                     <option value="drift">Under Drift</option>
                 </select>
             </div>
 
-            <div
-                style={{
-                    display: "flex",
-                    gap: "1rem",
-                    marginBottom: "1.5rem",
-                    flexWrap: "wrap",
-                }}
-            >
-                <button onClick={() => handleAction("Safe Read Operation")}>
-                    Safe Read Operation
-                </button>
-
-                <button onClick={() => handleAction("Config Change with Drift Risk")}>
-                    Config Change with Drift Risk
-                </button>
-
-                <button onClick={() => handleAction("Deploy Code Update")}>
-                    Deploy Code Update
-                </button>
+            <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+                <button onClick={() => handleAction("safe_read")}>Safe Read Operation</button>
+                <button onClick={() => handleAction("config_change")}>Config Change</button>
+                <button onClick={() => handleAction("deploy_update")}>Deploy Code Update</button>
             </div>
 
             {isEvaluating && (
-                <div
-                    style={{
-                        border: "1px solid #ccc",
-                        padding: "1rem",
-                        borderRadius: "8px",
-                        marginBottom: "1rem",
-                        fontWeight: "bold",
-                    }}
-                >
+                <div style={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "8px", marginBottom: "1rem", fontWeight: "bold" }}>
                     Evaluating pre-execution risk...
                 </div>
             )}
 
             {decision && (
-                <div
-                    style={{
-                        border: "1px solid #ccc",
-                        padding: "1rem",
-                        borderRadius: "8px",
-                    }}
-                >
+                <div style={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "8px" }}>
                     <h2>Pre-Execution Decision: {decision.decision}</h2>
                     <p><strong>Reason:</strong> {decision.reason}</p>
 
@@ -118,13 +94,9 @@ export default function App() {
                         <div>Energy: {decision.displacement.energy}</div>
                     </div>
 
-                    <div style={{ marginTop: "1rem" }}>
-                        <strong>Confidence:</strong> {decision.confidence}
-                    </div>
+                    <p><strong>Confidence:</strong> {decision.confidence}</p>
                 </div>
             )}
         </div>
     );
 }
-
-

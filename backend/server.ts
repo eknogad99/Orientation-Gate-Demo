@@ -119,49 +119,106 @@ function evaluateAction(action: string, systemState: string) {
 
 app.post("/evaluate", (req, res) => {
   const action = req.body?.action ?? "";
+  const systemState = req.body?.systemState ?? "stable";
 
-  if (action === "deploy_update") {
-    return res.json({
-      actionAttempted: "Deploy Code Update",
-      coherenceCheck: "FAILED",
-      decision: "BLOCK",
-      reason: "Temporal + System Drift",
-      displacement: "Execution timing and system-state misalignment detected",
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  if (action === "config_change") {
-    return res.json({
-      actionAttempted: "Config Change with Drift Risk",
-      coherenceCheck: "DEGRADED",
-      decision: "WARN",
-      reason: "Policy alignment uncertainty detected",
-      displacement: "Moderate configuration drift risk",
-      timestamp: new Date().toISOString(),
-    });
-  }
-
+  // SAFE READ
   if (action === "safe_read") {
     return res.json({
       actionAttempted: "Safe Read Operation",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
       reason: "No critical displacement detected",
-      displacement: "None",
+      displacement: {
+        temporal: "LOW",
+        system: "LOW",
+        energy: "LOW",
+      },
+      confidence: 0.98,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // CONFIG CHANGE
+  if (action === "config_change") {
+    if (systemState === "drift") {
+      return res.json({
+        actionAttempted: "Config Change with Drift Risk",
+        coherenceCheck: "DEGRADED",
+        decision: "WARN",
+        reason: "Policy alignment uncertainty detected",
+        displacement: {
+          temporal: "MEDIUM",
+          system: "HIGH",
+          energy: "LOW",
+        },
+        confidence: 0.72,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return res.json({
+      actionAttempted: "Config Change",
+      coherenceCheck: "PASSED",
+      decision: "ALLOW",
+      reason: "System stable",
+      displacement: {
+        temporal: "LOW",
+        system: "LOW",
+        energy: "LOW",
+      },
+      confidence: 0.9,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // DEPLOY UPDATE (THIS IS THE IMPORTANT ONE)
+  if (action === "deploy_update") {
+    if (systemState === "drift") {
+      return res.json({
+        actionAttempted: "Deploy Code Update",
+        coherenceCheck: "FAILED",
+        decision: "BLOCK",
+        reason: "Temporal + System Drift",
+        displacement: {
+          temporal: "HIGH",
+          system: "HIGH",
+          energy: "MEDIUM",
+        },
+        confidence: 0.91,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return res.json({
+      actionAttempted: "Deploy Code Update",
+      coherenceCheck: "PASSED",
+      decision: "ALLOW",
+      reason: "System stable",
+      displacement: {
+        temporal: "LOW",
+        system: "LOW",
+        energy: "LOW",
+      },
+      confidence: 0.95,
       timestamp: new Date().toISOString(),
     });
   }
 
   return res.json({
-    actionAttempted: action || "Unknown Action",
+    actionAttempted: "Unknown Action",
     coherenceCheck: "PASSED",
     decision: "ALLOW",
-    reason: "No critical displacement detected",
-    displacement: "None",
+    reason: "Default allow",
+    displacement: {
+      temporal: "LOW",
+      system: "LOW",
+      energy: "LOW",
+    },
+    confidence: 0.8,
     timestamp: new Date().toISOString(),
   });
 });
+
 app.listen(PORT, () => {
   ensureLogsFileExists();
   console.log(`Orientation Gate backend running on http://localhost:${PORT}`);
