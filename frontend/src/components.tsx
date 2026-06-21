@@ -1,4 +1,4 @@
-type SummaryItem = {
+export type SummaryItem = {
   topPriorityTitle: string
   topPriorityScore: number
   topPriorityLevel: "low" | "medium" | "high" | "critical"

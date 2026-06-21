@@ -10,6 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 type Decision = "ALLOW" | "WARN" | "BLOCK";
+type AuthorityMode = "AUTONOMOUS" | "SUPERVISED" | "BLOCKED";
 
 type EvaluationResponse = {
   actionAttempted: string;
@@ -17,6 +18,8 @@ type EvaluationResponse = {
   decision: Decision;
   reason: string;
   displacement: string;
+  authorityMode: AuthorityMode;
+  authorityReason: string;
   timestamp: string;
 };
 
@@ -64,6 +67,84 @@ app.get("/logs", (_req, res) => {
   const logs = readLogs();
   res.json(logs);
 });
+
+function evaluateAuthority(
+  actorRole?: string,
+  requestedAuthority?: string,
+  requiresApproval?: boolean
+) {
+  const normalizedActorRole = actorRole?.toLowerCase();
+  const normalizedRequestedAuthority = requestedAuthority?.toLowerCase();
+
+  const roleRank: Record<string, number> = {
+    viewer: 1,
+    operator: 2,
+    maintainer: 3,
+    admin: 4,
+    owner: 5,
+  };
+
+  const authorityRank: Record<string, number> = {
+    read: 1,
+    execute: 2,
+    configure: 3,
+    deploy: 4,
+    admin: 5,
+    owner: 5,
+  };
+
+  if (!normalizedActorRole && !normalizedRequestedAuthority && !requiresApproval) {
+    return {
+      authorityMode: "AUTONOMOUS" as AuthorityMode,
+      authorityReason: "No authority escalation requested.",
+    };
+  }
+
+  const actorRank = normalizedActorRole ? roleRank[normalizedActorRole] : undefined;
+  const requestedRank = normalizedRequestedAuthority
+    ? authorityRank[normalizedRequestedAuthority]
+    : undefined;
+
+  if (normalizedActorRole && actorRank === undefined) {
+    return {
+      authorityMode: "SUPERVISED" as AuthorityMode,
+      authorityReason: `Actor role '${actorRole}' is not recognized and requires review.`,
+    };
+  }
+
+  if (normalizedRequestedAuthority && requestedRank === undefined) {
+    return {
+      authorityMode: "SUPERVISED" as AuthorityMode,
+      authorityReason: `Requested authority '${requestedAuthority}' is not recognized and requires review.`,
+    };
+  }
+
+  if (requestedRank !== undefined && actorRank !== undefined && requestedRank > actorRank) {
+    return {
+      authorityMode: "BLOCKED" as AuthorityMode,
+      authorityReason: `Requested authority '${requestedAuthority}' exceeds actor role '${actorRole}'.`,
+    };
+  }
+
+  if (requestedRank !== undefined && actorRank === undefined) {
+    return {
+      authorityMode: "SUPERVISED" as AuthorityMode,
+      authorityReason: `Requested authority '${requestedAuthority}' requires review because actor role is missing or unknown.`,
+    };
+  }
+
+  if (requiresApproval) {
+    return {
+      authorityMode: "SUPERVISED" as AuthorityMode,
+      authorityReason: "Action requires approval before execution.",
+    };
+  }
+
+  return {
+    authorityMode: "AUTONOMOUS" as AuthorityMode,
+    authorityReason: "Actor role is sufficient for requested authority.",
+  };
+}
 
 function evaluateAction(action: string, systemState: string) {
   if (action === "Deploy Code Update") {
@@ -120,10 +201,21 @@ function evaluateAction(action: string, systemState: string) {
 app.post("/evaluate", (req, res) => {
   const action = req.body?.action ?? "";
   const systemState = req.body?.systemState ?? "stable";
+  const requiresApproval =
+    req.body?.requiresApproval === true || req.body?.requiresApproval === "true";
+  const authority = evaluateAuthority(
+    req.body?.actorRole,
+    req.body?.requestedAuthority,
+    requiresApproval
+  );
+  const withAuthority = <T extends object>(response: T) => ({
+    ...response,
+    ...authority,
+  });
 
   // SAFE READ
   if (action === "safe_read") {
-    return res.json({
+    return res.json(withAuthority({
       actionAttempted: "Safe Read Operation",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -135,13 +227,13 @@ app.post("/evaluate", (req, res) => {
       },
       confidence: 0.98,
       timestamp: new Date().toISOString(),
-    });
+    }));
   }
 
   // CONFIG CHANGE
   if (action === "config_change") {
     if (systemState === "drift") {
-      return res.json({
+      return res.json(withAuthority({
         actionAttempted: "Config Change with Drift Risk",
         coherenceCheck: "DEGRADED",
         decision: "WARN",
@@ -153,10 +245,10 @@ app.post("/evaluate", (req, res) => {
         },
         confidence: 0.72,
         timestamp: new Date().toISOString(),
-      });
+      }));
     }
 
-    return res.json({
+    return res.json(withAuthority({
       actionAttempted: "Config Change",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -168,13 +260,13 @@ app.post("/evaluate", (req, res) => {
       },
       confidence: 0.9,
       timestamp: new Date().toISOString(),
-    });
+    }));
   }
 
   // DEPLOY UPDATE (THIS IS THE IMPORTANT ONE)
   if (action === "deploy_update") {
     if (systemState === "drift") {
-      return res.json({
+      return res.json(withAuthority({
         actionAttempted: "Deploy Code Update",
         coherenceCheck: "FAILED",
         decision: "BLOCK",
@@ -186,10 +278,10 @@ app.post("/evaluate", (req, res) => {
         },
         confidence: 0.91,
         timestamp: new Date().toISOString(),
-      });
+      }));
     }
 
-    return res.json({
+    return res.json(withAuthority({
       actionAttempted: "Deploy Code Update",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -201,10 +293,10 @@ app.post("/evaluate", (req, res) => {
       },
       confidence: 0.95,
       timestamp: new Date().toISOString(),
-    });
+    }));
   }
 
-  return res.json({
+  return res.json(withAuthority({
     actionAttempted: "Unknown Action",
     coherenceCheck: "PASSED",
     decision: "ALLOW",
@@ -216,7 +308,7 @@ app.post("/evaluate", (req, res) => {
     },
     confidence: 0.8,
     timestamp: new Date().toISOString(),
-  });
+  }));
 });
 
 app.listen(PORT, () => {

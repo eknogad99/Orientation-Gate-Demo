@@ -3,6 +3,8 @@ import { useState } from "react";
 type DecisionResponse = {
     decision: string;
     reason: string;
+    authorityMode?: string;
+    authorityReason?: string;
     displacement: {
         temporal: string;
         system: string;
@@ -11,22 +13,45 @@ type DecisionResponse = {
     confidence: number;
 };
 
+type AuthorityScenario = "none" | "approval" | "exceeds";
+
+function getAuthorityFields(authorityScenario: AuthorityScenario) {
+    if (authorityScenario === "approval") {
+        return {
+            actorRole: "maintainer",
+            requestedAuthority: "configure",
+            requiresApproval: true,
+        };
+    }
+
+    if (authorityScenario === "exceeds") {
+        return {
+            actorRole: "operator",
+            requestedAuthority: "deploy",
+        };
+    }
+
+    return {};
+}
+
 export default function App() {
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [decision, setDecision] = useState<DecisionResponse | null>(null);
     const [systemState, setSystemState] = useState("stable");
+    const [authorityScenario, setAuthorityScenario] = useState<AuthorityScenario>("none");
 
     const handleAction = async (action: string) => {
         try {
             setIsEvaluating(true);
             setDecision(null);
+            const authorityFields = getAuthorityFields(authorityScenario);
 
             const response = await fetch("http://localhost:3001/evaluate", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ action, systemState }),
+                body: JSON.stringify({ action, systemState, ...authorityFields }),
             });
 
             const data = await response.json();
@@ -70,6 +95,18 @@ export default function App() {
                 </select>
             </div>
 
+            <div style={{ marginBottom: "1rem" }}>
+                <label>Authority Scenario: </label>
+                <select
+                    value={authorityScenario}
+                    onChange={(e) => setAuthorityScenario(e.target.value as AuthorityScenario)}
+                >
+                    <option value="none">No Escalation</option>
+                    <option value="approval">Requires Approval</option>
+                    <option value="exceeds">Exceeds Authority</option>
+                </select>
+            </div>
+
             <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
                 <button onClick={() => handleAction("safe_read")}>Safe Read Operation</button>
                 <button onClick={() => handleAction("config_change")}>Config Change</button>
@@ -95,6 +132,18 @@ export default function App() {
                     </div>
 
                     <p><strong>Confidence:</strong> {decision.confidence}</p>
+
+                    {(decision.authorityMode || decision.authorityReason) && (
+                        <div style={{ marginTop: "1rem" }}>
+                            <h3>Authority Layer</h3>
+                            {decision.authorityMode && (
+                                <p><strong>authorityMode:</strong> {decision.authorityMode}</p>
+                            )}
+                            {decision.authorityReason && (
+                                <p><strong>authorityReason:</strong> {decision.authorityReason}</p>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

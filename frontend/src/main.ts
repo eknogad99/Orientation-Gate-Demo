@@ -212,6 +212,8 @@ async function loadOrientationRules() {
     if (!policyDiv) return;
 
     function renderPolicyEditor() {
+      if (!policyDiv) return;
+
       let html = `<h2 style="margin-top:0;color:#8ec5ff;">Orientation Rules</h2>`;
 
       rulesData.forEach((rule: any, index: number) => {
@@ -309,7 +311,7 @@ async function loadOrientationRules() {
           });
 
           alert("Policy saved.");
-          loadPolicy();
+          loadOrientationRules();
         });
       }
     }
@@ -347,7 +349,6 @@ async function evaluateInput() {
   const inputEl = document.getElementById("aoal-input") as HTMLTextAreaElement | null;
   const modeEl = document.getElementById("aoal-mode") as HTMLSelectElement | null;
   const resultDiv = document.getElementById("evaluate-result");
-  const [isEvaluating, setIsEvaluating] = useState(false);
 
   if (!inputEl || !modeEl || !resultDiv) return;
 
@@ -369,20 +370,6 @@ async function evaluateInput() {
     });
 
     const data = await res.json();
-    setDecision(data);
-    setIsEvaluating(false);
-  };
-
-  { isEvaluating && <div>Evaluating pre - execution risk...</div> }
-
-  {
-    decision && (
-      <div>
-      <h3>Pre - Execution Decision: { decision.decision } </h3>
-        < p > { decision.reason } </p>
-        </div>
-)
-  }
 
   let decisionColor = "#aaa";
   if (data.decision === "BLOCK") decisionColor = "#ff4d4d";
@@ -431,6 +418,16 @@ async function runScenario(inputs: string[], mode: string, label: string) {
   await loadSystemSummary();
   await loadEventTimeline();
 
+}
+
+async function runSingleEvaluation(input: string, mode: string) {
+  await fetch("https://ventricle-visibly-tricky.ngrok-free.dev/evaluate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ input, mode })
+  });
 }
 
 async function loadStatus() {
@@ -482,7 +479,7 @@ function exportLogs() {
   window.open("http://localhost:3001/export-logs", "_blank");
 }
 
-loadStatus();
+loadSystemStatus();
 loadTrend();
 loadSystemSummary();
 loadEventTimeline();
