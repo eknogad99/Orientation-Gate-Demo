@@ -50,6 +50,26 @@ function getAuthorityFields(authorityScenario: AuthorityScenario) {
     return {};
 }
 
+function MatchIndicator({ matches }: { matches?: boolean }) {
+    const label = matches ? "Match" : "Mismatch";
+
+    return (
+        <span
+            style={{
+                display: "inline-block",
+                marginLeft: "0.5rem",
+                padding: "0.15rem 0.5rem",
+                borderRadius: "999px",
+                background: matches ? "#14532d" : "#7f1d1d",
+                color: matches ? "#bbf7d0" : "#fecaca",
+                fontWeight: "bold",
+            }}
+        >
+            {matches ? "OK" : "!"} {label}
+        </span>
+    );
+}
+
 export default function App() {
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [decision, setDecision] = useState<DecisionResponse | null>(null);
@@ -214,12 +234,18 @@ export default function App() {
                             <p><strong>Error:</strong> {replayResult.error}</p>
                         ) : (
                             <>
-                                <p><strong>Original decision:</strong> {replayResult.original?.decision}</p>
-                                <p><strong>Replayed decision:</strong> {replayResult.replayed?.decision}</p>
-                                <p><strong>decisionMatches:</strong> {String(replayResult.decisionMatches)}</p>
-                                <p><strong>Original authorityMode:</strong> {replayResult.original?.authorityMode}</p>
-                                <p><strong>Replayed authorityMode:</strong> {replayResult.replayed?.authorityMode}</p>
-                                <p><strong>authorityMatches:</strong> {String(replayResult.authorityMatches)}</p>
+                                <p><strong>Original Decision:</strong> {replayResult.original?.decision}</p>
+                                <p><strong>Replayed Decision:</strong> {replayResult.replayed?.decision}</p>
+                                <p>
+                                    <strong>Decision Match:</strong> {String(replayResult.decisionMatches)}
+                                    <MatchIndicator matches={replayResult.decisionMatches} />
+                                </p>
+                                <p><strong>Original Authority Mode:</strong> {replayResult.original?.authorityMode}</p>
+                                <p><strong>Replayed Authority Mode:</strong> {replayResult.replayed?.authorityMode}</p>
+                                <p>
+                                    <strong>Authority Match:</strong> {String(replayResult.authorityMatches)}
+                                    <MatchIndicator matches={replayResult.authorityMatches} />
+                                </p>
                             </>
                         )}
                     </div>
