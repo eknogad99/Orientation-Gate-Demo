@@ -195,5 +195,9 @@ Orientation asks:
 
 Orientation Gate™ exists to answer that question before execution occurs.
 
+Contact
+Raymond Brown
+https://www.linkedin.com/in/rlb1183/
+
 
 
