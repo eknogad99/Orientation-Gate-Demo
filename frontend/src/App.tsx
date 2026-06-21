@@ -115,8 +115,10 @@ export default function App() {
         }
     };
 
-    const handleReplay = async () => {
-        if (!replayId.trim()) {
+    const handleReplay = async (idOverride?: string) => {
+        const idToReplay = idOverride ?? replayId.trim();
+
+        if (!idToReplay) {
             setReplayResult({ error: "Enter an evaluation id to replay." });
             return;
         }
@@ -125,7 +127,7 @@ export default function App() {
             setIsReplaying(true);
             setReplayResult(null);
 
-            const response = await fetch(`http://localhost:3001/replay/${encodeURIComponent(replayId.trim())}`, {
+            const response = await fetch(`http://localhost:3001/replay/${encodeURIComponent(idToReplay)}`, {
                 method: "POST",
             });
 
@@ -188,7 +190,23 @@ export default function App() {
             {decision && (
                 <div style={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "8px" }}>
                     <h2>Pre-Execution Decision: {decision.decision}</h2>
-                    {decision.id && <p><strong>Evaluation ID:</strong> {decision.id}</p>}
+                    {decision.id && (
+                        <div
+                            style={{
+                                border: "1px solid #38bdf8",
+                                background: "#082f49",
+                                color: "#e0f2fe",
+                                padding: "0.75rem",
+                                borderRadius: "8px",
+                                marginBottom: "1rem",
+                            }}
+                        >
+                            <strong>Evaluation ID:</strong>
+                            <div style={{ fontSize: "1.1rem", fontWeight: "bold", marginTop: "0.25rem", wordBreak: "break-all" }}>
+                                {decision.id}
+                            </div>
+                        </div>
+                    )}
                     <p><strong>Reason:</strong> {decision.reason}</p>
 
                     <div style={{ marginTop: "1rem" }}>
@@ -223,8 +241,11 @@ export default function App() {
                         placeholder="Evaluation ID"
                         style={{ flex: "1 1 260px" }}
                     />
-                    <button onClick={handleReplay} disabled={isReplaying}>
+                    <button onClick={() => handleReplay()} disabled={isReplaying}>
                         {isReplaying ? "Replaying..." : "Replay"}
+                    </button>
+                    <button onClick={() => handleReplay(decision?.id)} disabled={isReplaying || !decision?.id}>
+                        Replay Latest Evaluation
                     </button>
                 </div>
 
