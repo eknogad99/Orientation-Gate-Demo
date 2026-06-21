@@ -40,6 +40,7 @@ type EvaluationRequestInputs = {
 };
 
 type LogEntry = EvaluationRequestInputs & EvaluationResponse;
+type EvaluationCoreResponse = Omit<EvaluationResponse, "id" | "timestamp">;
 
 const LOGS_FILE_PATH = path.join(process.cwd(), "logs.json");
 
@@ -74,6 +75,27 @@ function appendLog(entry: LogEntry) {
 
 function createEvaluationId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function parseEvaluationInputs(body: any): EvaluationRequestInputs {
+  return {
+    action: body?.action ?? "",
+    systemState: body?.systemState ?? "stable",
+    actorRole: typeof body?.actorRole === "string" ? body.actorRole : null,
+    requestedAuthority:
+      typeof body?.requestedAuthority === "string" ? body.requestedAuthority : null,
+    requiresApproval: body?.requiresApproval === true || body?.requiresApproval === "true",
+  };
+}
+
+function hasReplayInputs(entry: any): entry is LogEntry {
+  return (
+    typeof entry?.action === "string" &&
+    typeof entry?.systemState === "string" &&
+    (typeof entry?.actorRole === "string" || entry?.actorRole === null) &&
+    (typeof entry?.requestedAuthority === "string" || entry?.requestedAuthority === null) &&
+    typeof entry?.requiresApproval === "boolean"
+  );
 }
 
  http://localhost:3001
@@ -216,47 +238,16 @@ function evaluateAction(action: string, systemState: string) {
   };
 }
 
-app.post("/evaluate", (req, res) => {
-  const action = req.body?.action ?? "";
-  const systemState = req.body?.systemState ?? "stable";
-  const actorRole = typeof req.body?.actorRole === "string" ? req.body.actorRole : null;
-  const requestedAuthority =
-    typeof req.body?.requestedAuthority === "string" ? req.body.requestedAuthority : null;
-  const requiresApproval =
-    req.body?.requiresApproval === true || req.body?.requiresApproval === "true";
+function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCoreResponse {
   const authority = evaluateAuthority(
-    actorRole ?? undefined,
-    requestedAuthority ?? undefined,
-    requiresApproval
+    inputs.actorRole ?? undefined,
+    inputs.requestedAuthority ?? undefined,
+    inputs.requiresApproval
   );
-  const requestInputs: EvaluationRequestInputs = {
-    action,
-    systemState,
-    actorRole,
-    requestedAuthority,
-    requiresApproval,
-  };
-  const returnEvaluation = (
-    response: Omit<EvaluationResponse, "id" | "authorityMode" | "authorityReason" | "timestamp">
-  ) => {
-    const evaluation: EvaluationResponse = {
-      id: createEvaluationId(),
-      ...response,
-      ...authority,
-      timestamp: new Date().toISOString(),
-    };
-
-    appendLog({
-      ...requestInputs,
-      ...evaluation,
-    });
-
-    return res.json(evaluation);
-  };
 
   // SAFE READ
-  if (action === "safe_read") {
-    return returnEvaluation({
+  if (inputs.action === "safe_read") {
+    return {
       actionAttempted: "Safe Read Operation",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -267,13 +258,14 @@ app.post("/evaluate", (req, res) => {
         energy: "LOW",
       },
       confidence: 0.98,
-    });
+      ...authority,
+    };
   }
 
   // CONFIG CHANGE
-  if (action === "config_change") {
-    if (systemState === "drift") {
-      return returnEvaluation({
+  if (inputs.action === "config_change") {
+    if (inputs.systemState === "drift") {
+      return {
         actionAttempted: "Config Change with Drift Risk",
         coherenceCheck: "DEGRADED",
         decision: "WARN",
@@ -284,10 +276,11 @@ app.post("/evaluate", (req, res) => {
           energy: "LOW",
         },
         confidence: 0.72,
-      });
+        ...authority,
+      };
     }
 
-    return returnEvaluation({
+    return {
       actionAttempted: "Config Change",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -298,13 +291,14 @@ app.post("/evaluate", (req, res) => {
         energy: "LOW",
       },
       confidence: 0.9,
-    });
+      ...authority,
+    };
   }
 
   // DEPLOY UPDATE (THIS IS THE IMPORTANT ONE)
-  if (action === "deploy_update") {
-    if (systemState === "drift") {
-      return returnEvaluation({
+  if (inputs.action === "deploy_update") {
+    if (inputs.systemState === "drift") {
+      return {
         actionAttempted: "Deploy Code Update",
         coherenceCheck: "FAILED",
         decision: "BLOCK",
@@ -315,10 +309,11 @@ app.post("/evaluate", (req, res) => {
           energy: "MEDIUM",
         },
         confidence: 0.91,
-      });
+        ...authority,
+      };
     }
 
-    return returnEvaluation({
+    return {
       actionAttempted: "Deploy Code Update",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -329,10 +324,11 @@ app.post("/evaluate", (req, res) => {
         energy: "LOW",
       },
       confidence: 0.95,
-    });
+      ...authority,
+    };
   }
 
-  return returnEvaluation({
+  return {
     actionAttempted: "Unknown Action",
     coherenceCheck: "PASSED",
     decision: "ALLOW",
@@ -343,6 +339,62 @@ app.post("/evaluate", (req, res) => {
       energy: "LOW",
     },
     confidence: 0.8,
+    ...authority,
+  };
+}
+
+app.post("/evaluate", (req, res) => {
+  const requestInputs = parseEvaluationInputs(req.body);
+  const evaluation: EvaluationResponse = {
+    id: createEvaluationId(),
+    ...buildEvaluationResponse(requestInputs),
+    timestamp: new Date().toISOString(),
+  };
+
+  appendLog({
+    ...requestInputs,
+    ...evaluation,
+  });
+
+  return res.json(evaluation);
+});
+
+app.post("/replay/:id", (req, res) => {
+  const logs = readLogs();
+  const original = logs.find((entry) => entry.id === req.params.id);
+
+  if (!original) {
+    return res.status(404).json({
+      error: "Evaluation log not found",
+    });
+  }
+
+  if (!hasReplayInputs(original)) {
+    return res.status(400).json({
+      error: "Evaluation log does not contain replay inputs",
+    });
+  }
+
+  const replayed = buildEvaluationResponse({
+    action: original.action,
+    systemState: original.systemState,
+    actorRole: original.actorRole,
+    requestedAuthority: original.requestedAuthority,
+    requiresApproval: original.requiresApproval,
+  });
+
+  return res.json({
+    id: original.id,
+    original: {
+      decision: original.decision,
+      authorityMode: original.authorityMode,
+    },
+    replayed: {
+      decision: replayed.decision,
+      authorityMode: replayed.authorityMode,
+    },
+    decisionMatches: original.decision === replayed.decision,
+    authorityMatches: original.authorityMode === replayed.authorityMode,
   });
 });
 

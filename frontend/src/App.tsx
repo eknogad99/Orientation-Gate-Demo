@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 type DecisionResponse = {
+    id?: string;
     decision: string;
     reason: string;
     authorityMode?: string;
@@ -11,6 +12,21 @@ type DecisionResponse = {
         energy: string;
     };
     confidence: number;
+};
+
+type ReplayResponse = {
+    id?: string;
+    original?: {
+        decision: string;
+        authorityMode?: string;
+    };
+    replayed?: {
+        decision: string;
+        authorityMode?: string;
+    };
+    decisionMatches?: boolean;
+    authorityMatches?: boolean;
+    error?: string;
 };
 
 type AuthorityScenario = "none" | "approval" | "exceeds";
@@ -39,6 +55,9 @@ export default function App() {
     const [decision, setDecision] = useState<DecisionResponse | null>(null);
     const [systemState, setSystemState] = useState("stable");
     const [authorityScenario, setAuthorityScenario] = useState<AuthorityScenario>("none");
+    const [replayId, setReplayId] = useState("");
+    const [isReplaying, setIsReplaying] = useState(false);
+    const [replayResult, setReplayResult] = useState<ReplayResponse | null>(null);
 
     const handleAction = async (action: string) => {
         try {
@@ -56,6 +75,10 @@ export default function App() {
 
             const data = await response.json();
             setDecision(data);
+            if (data.id) {
+                setReplayId(data.id);
+            }
+            setReplayResult(null);
         } catch {
             setDecision({
                 decision: "ERROR",
@@ -69,6 +92,29 @@ export default function App() {
             });
         } finally {
             setIsEvaluating(false);
+        }
+    };
+
+    const handleReplay = async () => {
+        if (!replayId.trim()) {
+            setReplayResult({ error: "Enter an evaluation id to replay." });
+            return;
+        }
+
+        try {
+            setIsReplaying(true);
+            setReplayResult(null);
+
+            const response = await fetch(`http://localhost:3001/replay/${encodeURIComponent(replayId.trim())}`, {
+                method: "POST",
+            });
+
+            const data = await response.json();
+            setReplayResult(data);
+        } catch {
+            setReplayResult({ error: "Failed to replay evaluation." });
+        } finally {
+            setIsReplaying(false);
         }
     };
 
@@ -122,6 +168,7 @@ export default function App() {
             {decision && (
                 <div style={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "8px" }}>
                     <h2>Pre-Execution Decision: {decision.decision}</h2>
+                    {decision.id && <p><strong>Evaluation ID:</strong> {decision.id}</p>}
                     <p><strong>Reason:</strong> {decision.reason}</p>
 
                     <div style={{ marginTop: "1rem" }}>
@@ -146,6 +193,38 @@ export default function App() {
                     )}
                 </div>
             )}
+
+            <div style={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "8px", marginTop: "1rem" }}>
+                <h2>Replay Verification</h2>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <input
+                        value={replayId}
+                        onChange={(e) => setReplayId(e.target.value)}
+                        placeholder="Evaluation ID"
+                        style={{ flex: "1 1 260px" }}
+                    />
+                    <button onClick={handleReplay} disabled={isReplaying}>
+                        {isReplaying ? "Replaying..." : "Replay"}
+                    </button>
+                </div>
+
+                {replayResult && (
+                    <div style={{ marginTop: "1rem" }}>
+                        {replayResult.error ? (
+                            <p><strong>Error:</strong> {replayResult.error}</p>
+                        ) : (
+                            <>
+                                <p><strong>Original decision:</strong> {replayResult.original?.decision}</p>
+                                <p><strong>Replayed decision:</strong> {replayResult.replayed?.decision}</p>
+                                <p><strong>decisionMatches:</strong> {String(replayResult.decisionMatches)}</p>
+                                <p><strong>Original authorityMode:</strong> {replayResult.original?.authorityMode}</p>
+                                <p><strong>Replayed authorityMode:</strong> {replayResult.replayed?.authorityMode}</p>
+                                <p><strong>authorityMatches:</strong> {String(replayResult.authorityMatches)}</p>
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
