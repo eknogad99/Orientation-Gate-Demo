@@ -12,20 +12,34 @@ app.use(express.json());
 type Decision = "ALLOW" | "WARN" | "BLOCK";
 type AuthorityMode = "AUTONOMOUS" | "SUPERVISED" | "BLOCKED";
 
+type Displacement = {
+  temporal: string;
+  system: string;
+  energy: string;
+};
+
 type EvaluationResponse = {
+  id: string;
   actionAttempted: string;
   coherenceCheck: string;
   decision: Decision;
   reason: string;
-  displacement: string;
+  displacement: Displacement;
   authorityMode: AuthorityMode;
   authorityReason: string;
+  confidence: number;
   timestamp: string;
 };
 
-type LogEntry = EvaluationResponse & {
-  id: string;
+type EvaluationRequestInputs = {
+  action: string;
+  systemState: string;
+  actorRole: string | null;
+  requestedAuthority: string | null;
+  requiresApproval: boolean;
 };
+
+type LogEntry = EvaluationRequestInputs & EvaluationResponse;
 
 const LOGS_FILE_PATH = path.join(process.cwd(), "logs.json");
 
@@ -56,6 +70,10 @@ function appendLog(entry: LogEntry) {
   const logs = readLogs();
   logs.unshift(entry);
   writeLogs(logs);
+}
+
+function createEvaluationId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
  http://localhost:3001
@@ -201,21 +219,44 @@ function evaluateAction(action: string, systemState: string) {
 app.post("/evaluate", (req, res) => {
   const action = req.body?.action ?? "";
   const systemState = req.body?.systemState ?? "stable";
+  const actorRole = typeof req.body?.actorRole === "string" ? req.body.actorRole : null;
+  const requestedAuthority =
+    typeof req.body?.requestedAuthority === "string" ? req.body.requestedAuthority : null;
   const requiresApproval =
     req.body?.requiresApproval === true || req.body?.requiresApproval === "true";
   const authority = evaluateAuthority(
-    req.body?.actorRole,
-    req.body?.requestedAuthority,
+    actorRole ?? undefined,
+    requestedAuthority ?? undefined,
     requiresApproval
   );
-  const withAuthority = <T extends object>(response: T) => ({
-    ...response,
-    ...authority,
-  });
+  const requestInputs: EvaluationRequestInputs = {
+    action,
+    systemState,
+    actorRole,
+    requestedAuthority,
+    requiresApproval,
+  };
+  const returnEvaluation = (
+    response: Omit<EvaluationResponse, "id" | "authorityMode" | "authorityReason" | "timestamp">
+  ) => {
+    const evaluation: EvaluationResponse = {
+      id: createEvaluationId(),
+      ...response,
+      ...authority,
+      timestamp: new Date().toISOString(),
+    };
+
+    appendLog({
+      ...requestInputs,
+      ...evaluation,
+    });
+
+    return res.json(evaluation);
+  };
 
   // SAFE READ
   if (action === "safe_read") {
-    return res.json(withAuthority({
+    return returnEvaluation({
       actionAttempted: "Safe Read Operation",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -226,14 +267,13 @@ app.post("/evaluate", (req, res) => {
         energy: "LOW",
       },
       confidence: 0.98,
-      timestamp: new Date().toISOString(),
-    }));
+    });
   }
 
   // CONFIG CHANGE
   if (action === "config_change") {
     if (systemState === "drift") {
-      return res.json(withAuthority({
+      return returnEvaluation({
         actionAttempted: "Config Change with Drift Risk",
         coherenceCheck: "DEGRADED",
         decision: "WARN",
@@ -244,11 +284,10 @@ app.post("/evaluate", (req, res) => {
           energy: "LOW",
         },
         confidence: 0.72,
-        timestamp: new Date().toISOString(),
-      }));
+      });
     }
 
-    return res.json(withAuthority({
+    return returnEvaluation({
       actionAttempted: "Config Change",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -259,14 +298,13 @@ app.post("/evaluate", (req, res) => {
         energy: "LOW",
       },
       confidence: 0.9,
-      timestamp: new Date().toISOString(),
-    }));
+    });
   }
 
   // DEPLOY UPDATE (THIS IS THE IMPORTANT ONE)
   if (action === "deploy_update") {
     if (systemState === "drift") {
-      return res.json(withAuthority({
+      return returnEvaluation({
         actionAttempted: "Deploy Code Update",
         coherenceCheck: "FAILED",
         decision: "BLOCK",
@@ -277,11 +315,10 @@ app.post("/evaluate", (req, res) => {
           energy: "MEDIUM",
         },
         confidence: 0.91,
-        timestamp: new Date().toISOString(),
-      }));
+      });
     }
 
-    return res.json(withAuthority({
+    return returnEvaluation({
       actionAttempted: "Deploy Code Update",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -292,11 +329,10 @@ app.post("/evaluate", (req, res) => {
         energy: "LOW",
       },
       confidence: 0.95,
-      timestamp: new Date().toISOString(),
-    }));
+    });
   }
 
-  return res.json(withAuthority({
+  return returnEvaluation({
     actionAttempted: "Unknown Action",
     coherenceCheck: "PASSED",
     decision: "ALLOW",
@@ -307,8 +343,7 @@ app.post("/evaluate", (req, res) => {
       energy: "LOW",
     },
     confidence: 0.8,
-    timestamp: new Date().toISOString(),
-  }));
+  });
 });
 
 app.listen(PORT, () => {
