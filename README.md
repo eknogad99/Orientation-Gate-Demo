@@ -1,214 +1,203 @@
-# ORIENTATION GATE™
+# Orientation Gate™
 
-### A Pre-Inference Control Layer for Agentic AI Systems
+### Governing Consequential Execution
 
-Agentic AI systems are increasingly capable of initiating actions, invoking tools, executing workflows, and affecting operational environments with limited human intervention.
+Orientation Gate™ is a pre-execution governance layer for autonomous and agentic systems.
 
-Yet many current architectures still transition directly from orchestration to execution without a deterministic governance layer capable of evaluating operational state, policy alignment, and execution risk prior to downstream action initiation.
+It evaluates proposed actions before execution and determines:
 
-ORIENTATION GATE™ proposes an execution governance layer positioned between orchestration and execution, capable of rendering deterministic ALLOW, WARN, or BLOCK decisions before actions occur.
+1. Whether the action remains operationally admissible under current conditions.
+2. Whether the requesting actor possesses sufficient authority to execute it.
+3. Whether the decision can be recorded for future audit and verification.
 
----
-
-## Architectural Placement
+Orientation Gate exists between orchestration and execution.
 
 ```text
-Agent
-  ↓
-Orchestrator
-  ↓
-ORIENTATION GATE™
-├─ ALLOW
-├─ WARN
-└─ BLOCK
-  ↓
+Agent / Workflow
+        ↓
+ ORIENTATION GATE™
+        ↓
 Execution Layer
 ```
 
+The objective is simple:
+
+> Prevent inadmissible execution before consequence occurs.
+
 ---
 
-## Governed Execution Example
+# Current Demonstrated Capabilities
 
-### Deployment Attempt During Drift State
+## 1. Operational Decision Layer
 
-### Input
+Orientation Gate evaluates proposed actions against current system conditions.
+
+Possible outcomes:
+
+* ALLOW
+* WARN
+* BLOCK
+
+Examples:
+
+* Stable system → ALLOW
+* Configuration change during drift → WARN
+* Deployment during critical drift → BLOCK
+
+This layer answers:
+
+> Does the proposed action remain operationally admissible under current conditions?
+
+---
+
+## 2. Authority Escalation Layer
+
+Orientation Gate independently evaluates execution authority.
+
+Possible outcomes:
+
+* AUTONOMOUS
+* SUPERVISED
+* BLOCKED
+
+This layer answers:
+
+> Does the requesting actor possess sufficient authority to execute the action?
+
+Examples:
+
+### Operationally Allowed + Autonomous
 
 ```json
 {
-  "action": "deploy_update",
-  "systemState": "drift",
-  "stability_score": 0.32,
-  "threshold": 0.50
+  "decision": "ALLOW",
+  "authorityMode": "AUTONOMOUS"
 }
 ```
 
-### Policy Evaluation
+### Operationally Allowed + Supervised
 
-```text
-Decision: BLOCK
-Policy Rule: OG-RULE-001
-Confidence: 0.91
-
-Reason:
-Stability score below threshold during drift;
-deployment blocked.
+```json
+{
+  "decision": "ALLOW",
+  "authorityMode": "SUPERVISED"
+}
 ```
 
-The governance layer prevents downstream execution before deployment occurs.
+### Operationally Allowed + Authority Blocked
+
+```json
+{
+  "decision": "ALLOW",
+  "authorityMode": "BLOCKED"
+}
+```
+
+This demonstrates a core governance principle:
+
+> An action may be operationally admissible while remaining unauthorized.
 
 ---
+
+## 3. Evaluation Logging
+
+Every evaluation receives:
+
+* Unique Evaluation ID
+* Timestamp
+* Original Request Inputs
+* Operational Decision
+* Authority Decision
+* Confidence Score
+
+Evaluations are written to:
+
+```text
+backend/logs.json
+```
+
+This creates an audit-ready execution history.
+
+---
+
+# Example Evaluation
+
+```json
+{
+  "decision": "ALLOW",
+  "authorityMode": "BLOCKED",
+  "authorityReason": "Requested authority exceeds actor role."
+}
+```
+
+Interpretation:
+
+* The action itself is acceptable.
+* The actor lacks sufficient authority.
+* Execution is prevented.
+
+---
+
+# Architecture
+
+```text
+Agent / Workflow
+        ↓
+Operational Evaluation
+        ↓
+ALLOW | WARN | BLOCK
+        ↓
+Authority Evaluation
+        ↓
+AUTONOMOUS | SUPERVISED | BLOCKED
+        ↓
+Audit Logging
+        ↓
+Execution Outcome
+```
+
+---
+
+# Roadmap
 
 ## Replay Verification
 
-ORIENTATION GATE™ supports deterministic replay verification by re-evaluating historical execution conditions against the active governance policy set.
+Historical evaluations will be replayable using the original request conditions.
 
-```text
-Original Decision: BLOCK
-Replayed Decision: BLOCK
+Replay will compare:
 
-Original Policy: OG-RULE-001
-Replayed Policy: OG-RULE-001
+* Original Decision
+* Replayed Decision
+* Original Authority Outcome
+* Replayed Authority Outcome
 
-Match: TRUE
-```
-
-Replay verification enables auditability, execution traceability, and deterministic policy validation under reproducible operational conditions.
-
----
+and determine whether governance behavior remains reproducible.
 
 ## Policy Versioning
 
-Governance policies are externalized and versioned independently from orchestration systems.
+Future releases will associate evaluations with explicit policy versions, enabling deterministic governance audits.
 
-```json
-{
-  "policy_version": "v1.0.0",
-  "rule_id": "OG-RULE-001",
-  "decision": "BLOCK"
-}
-```
+## Externalized Policy Engine
 
-Policy versioning allows execution decisions to remain attributable to specific governance conditions over time.
+Operational rules will move from embedded evaluation logic into versioned policy definitions.
 
 ---
 
-## Fail-Closed Governance
+# Orientation Principle
 
-If required evaluation inputs are absent or invalid, ORIENTATION GATE™ defaults to deterministic BLOCK behavior.
+Traditional governance asks:
 
-```text
-Decision: BLOCK
-Policy: OG-FAIL-CLOSED
+> Can this action be performed?
 
-Reason:
-Missing or invalid input;
-evaluation cannot proceed.
-```
+Orientation asks:
 
-Fail-closed behavior prevents downstream execution under incomplete or unverifiable operational conditions.
+> Does the resulting state remain admissible once the action enters the field of all other actions already in motion?
 
----
+Orientation Gate™ exists to answer that question before execution occurs.
 
-## Core Principle
+Contact
+Raymond Brown
+https://www.linkedin.com/in/rlb1183/
 
-> AI systems need a deterministic execution governance layer between orchestration and execution.
-
-
-# Orientation Gate Demo
-
-Pre-execution control layer for automated systems.
-
-## 🎥 Demo
-
-[Orientation Gate Blocks Deploy During Drift](PASTE_YOUR_LOOM_LINK_HERE)
-
----
-
-## What It Does
-
-Orientation Gate sits between intent and execution.
-```text
-Action Attempt → Evaluation → Decision → Execute or Stop
-```
-
-## Core Behavior
-
-| System State | Action              | Decision |
-| ------------ | ------------------- | -------- |
-| Stable       | Safe Read Operation | ALLOW    |
-| Stable       | Config Change       | ALLOW    |
-| Stable       | Deploy Code Update  | ALLOW    |
-| Under Drift  | Safe Read Operation | ALLOW    |
-| Under Drift  | Config Change       | WARN     |
-| Under Drift  | Deploy Code Update  | BLOCK    |
-
-
-## Example Output
-
-```json
-{
-  "actionAttempted": "Deploy Code Update",
-  "coherenceCheck": "FAILED",
-  "decision": "BLOCK",
-  "reason": "Temporal + System Drift",
-  "displacement": {
-    "temporal": "HIGH",
-    "system": "HIGH",
-    "energy": "MEDIUM"
-  },
-  "confidence": 0.91
-}
-```
-## CI/CD Integration
-
-Orientation Gate integrates with GitHub Actions as a pre-deployment check.
-
-```text
-GitHub Workflow → Orientation Gate → Decision
-```
-
-If the system returns BLOCK, the pipeline exits with code 1 and deployment stops.
-
-## Local Setup
-### Backend
-
-```bash
-cd backend
-npm install
-npm run dev
-```
-Runs at: http://localhost:3001
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Runs at: http://localhost:5173
-
-## API
-POST /evaluate
-
-Example request:
-
-```json
-{
-  "action": "deploy_update",
-  "systemState": "drift"
-}
-```
-
-Returns a decision, reason, displacement values, confidence score, and timestamp.
-
-## Positioning
-
-Orientation Gate is not just a dashboard.
-
-It is a control layer that evaluates whether an action should execute before it happens.
-
-```text
-Intent → Evaluation → Decision → Execution Boundary
-```
 
 
