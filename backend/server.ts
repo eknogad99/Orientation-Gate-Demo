@@ -226,7 +226,15 @@ function resolveExecutionOutcome(decision: Decision, authorityMode: AuthorityMod
   return "EXECUTE";
 }
 
+function normalizeEvaluationResponse(response: EvaluationCoreResponse): EvaluationCoreResponse {
+  return {
+    ...response,
+    executionOutcome: response.executionOutcome ?? resolveExecutionOutcome(response.decision, response.authorityMode),
+  };
+}
+
 function buildReplayResponse(original: LogEntry, replayed: EvaluationCoreResponse): ReplayResponse {
+  const normalizedReplay = normalizeEvaluationResponse(replayed);
   const originalExecutionOutcome =
     original.executionOutcome ?? resolveExecutionOutcome(original.decision, original.authorityMode);
 
@@ -238,13 +246,13 @@ function buildReplayResponse(original: LogEntry, replayed: EvaluationCoreRespons
       executionOutcome: originalExecutionOutcome,
     },
     replayed: {
-      decision: replayed.decision,
-      authorityMode: replayed.authorityMode,
-      executionOutcome: replayed.executionOutcome,
+      decision: normalizedReplay.decision,
+      authorityMode: normalizedReplay.authorityMode,
+      executionOutcome: normalizedReplay.executionOutcome,
     },
-    decisionMatches: original.decision === replayed.decision,
-    authorityMatches: original.authorityMode === replayed.authorityMode,
-    executionOutcomeMatches: originalExecutionOutcome === replayed.executionOutcome,
+    decisionMatches: original.decision === normalizedReplay.decision,
+    authorityMatches: original.authorityMode === normalizedReplay.authorityMode,
+    executionOutcomeMatches: originalExecutionOutcome === normalizedReplay.executionOutcome,
   };
 }
 
@@ -257,10 +265,7 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
 
   const withExecutionOutcome = (
     response: Omit<EvaluationCoreResponse, "executionOutcome">
-  ): EvaluationCoreResponse => ({
-    ...response,
-    executionOutcome: resolveExecutionOutcome(response.decision, response.authorityMode),
-  });
+  ): EvaluationCoreResponse => normalizeEvaluationResponse(response);
 
   // SAFE READ
   if (inputs.action === "safe_read") {
@@ -362,9 +367,10 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
 
 app.post("/evaluate", (req, res) => {
   const requestInputs = parseEvaluationInputs(req.body);
+  const evaluationCore = normalizeEvaluationResponse(buildEvaluationResponse(requestInputs));
   const evaluation: EvaluationResponse = {
     id: createEvaluationId(),
-    ...buildEvaluationResponse(requestInputs),
+    ...evaluationCore,
     timestamp: new Date().toISOString(),
   };
 
@@ -392,13 +398,15 @@ app.post("/replay/:id", (req, res) => {
     });
   }
 
-  const replayed = buildEvaluationResponse({
-    action: original.action,
-    systemState: original.systemState,
-    actorRole: original.actorRole,
-    requestedAuthority: original.requestedAuthority,
-    requiresApproval: original.requiresApproval,
-  });
+  const replayed = normalizeEvaluationResponse(
+    buildEvaluationResponse({
+      action: original.action,
+      systemState: original.systemState,
+      actorRole: original.actorRole,
+      requestedAuthority: original.requestedAuthority,
+      requiresApproval: original.requiresApproval,
+    })
+  );
 
   return res.json(buildReplayResponse(original, replayed));
 });
