@@ -1,3 +1,5 @@
+import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
+
 type ExecutionOutcome = "EXECUTE" | "ESCALATE" | "DENY";
 
 type EvaluationResponse = {
@@ -15,7 +17,50 @@ type ReplayResponse = {
   executionOutcomeMatches?: boolean;
 };
 
-const BASE_URL = process.env.ORIENTATION_GATE_URL ?? "http://localhost:3001";
+const VERIFY_PORT = Number(process.env.ORIENTATION_GATE_VERIFY_PORT ?? 3101);
+const BASE_URL = `http://localhost:${VERIFY_PORT}`;
+
+function startServer(): Promise<ChildProcessWithoutNullStreams> {
+  return new Promise((resolve, reject) => {
+    const server = spawn("tsx", ["server.ts"], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        PORT: String(VERIFY_PORT),
+      },
+    });
+
+    let resolved = false;
+
+    server.stdout.on("data", (data: Buffer) => {
+      const output = data.toString();
+      process.stdout.write(output);
+
+      if (!resolved && output.includes(`http://localhost:${VERIFY_PORT}`)) {
+        resolved = true;
+        resolve(server);
+      }
+    });
+
+    server.stderr.on("data", (data: Buffer) => {
+      process.stderr.write(data.toString());
+    });
+
+    server.on("error", reject);
+
+    server.on("exit", (code) => {
+      if (!resolved) {
+        reject(new Error(`Server exited before verification started with code ${String(code)}.`));
+      }
+    });
+  });
+}
+
+function stopServer(server: ChildProcessWithoutNullStreams) {
+  if (!server.killed) {
+    server.kill();
+  }
+}
 
 async function postJson<TResponse>(path: string, body?: unknown): Promise<TResponse> {
   const response = await fetch(`${BASE_URL}${path}`, {
@@ -61,7 +106,7 @@ function assertReplayContract(replay: ReplayResponse) {
   }
 }
 
-async function main() {
+async function verifyContract() {
   const evaluation = await postJson<EvaluationResponse>("/evaluate", {
     action: "deploy_update",
     systemState: "drift",
@@ -69,6 +114,8 @@ async function main() {
     requestedAuthority: "deploy",
     requiresApproval: false,
   });
+
+  console.log("Evaluation response:", JSON.stringify(evaluation));
 
   if (!evaluation.id) {
     throw new Error("Expected /evaluate to return an id.");
@@ -83,9 +130,19 @@ async function main() {
   }
 
   const replay = await postJson<ReplayResponse>(`/replay/${encodeURIComponent(evaluation.id)}`);
+  console.log("Replay response:", JSON.stringify(replay));
   assertReplayContract(replay);
+}
 
-  console.log("Replay execution outcome contract verified.");
+async function main() {
+  const server = await startServer();
+
+  try {
+    await verifyContract();
+    console.log("Replay execution outcome contract verified.");
+  } finally {
+    stopServer(server);
+  }
 }
 
 main().catch((error: unknown) => {
