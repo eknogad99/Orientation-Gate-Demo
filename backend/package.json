@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "server.ts",
   "scripts": {
-    "dev": "tsx server.ts"
+    "dev": "tsx server.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "cors": "^2.8.5",
