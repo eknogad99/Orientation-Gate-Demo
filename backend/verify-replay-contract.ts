@@ -1,20 +1,34 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
 
 type ExecutionOutcome = "EXECUTE" | "ESCALATE" | "DENY";
+type StateAdmissibility = "STATE_ADMISSIBLE" | "STATE_AT_RISK" | "STATE_INADMISSIBLE";
+
+type SystemModelState = {
+  stability: number;
+  configurationIntegrity: number;
+  resourcePressure: number;
+};
 
 type EvaluationResponse = {
   id?: string;
   executionOutcome?: ExecutionOutcome;
+  resultingState?: SystemModelState;
+  stateAdmissibility?: StateAdmissibility;
 };
 
 type ReplayResponse = {
   original?: {
     executionOutcome?: ExecutionOutcome;
+    resultingState?: SystemModelState;
+    stateAdmissibility?: StateAdmissibility;
   };
   replayed?: {
     executionOutcome?: ExecutionOutcome;
+    resultingState?: SystemModelState;
+    stateAdmissibility?: StateAdmissibility;
   };
   executionOutcomeMatches?: boolean;
+  stateTransitionMatches?: boolean;
 };
 
 const VERIFY_PORT = Number(process.env.ORIENTATION_GATE_VERIFY_PORT ?? 3101);
@@ -107,6 +121,22 @@ function assertReplayContract(replay: ReplayResponse) {
       )}`
     );
   }
+
+  if (replay.original?.stateAdmissibility === undefined) {
+    throw new Error("Expected original.stateAdmissibility to be returned.");
+  }
+
+  if (replay.replayed?.stateAdmissibility === undefined) {
+    throw new Error("Expected replayed.stateAdmissibility to be returned.");
+  }
+
+  if (replay.stateTransitionMatches !== true) {
+    throw new Error(
+      `Expected stateTransitionMatches to be true, received ${String(
+        replay.stateTransitionMatches
+      )}`
+    );
+  }
 }
 
 async function verifyContract() {
@@ -116,6 +146,11 @@ async function verifyContract() {
     actorRole: "operator",
     requestedAuthority: "deploy",
     requiresApproval: false,
+    previousState: {
+      stability: 1,
+      configurationIntegrity: 1,
+      resourcePressure: 0,
+    },
   });
 
   console.log("Evaluation response:", JSON.stringify(evaluation));
@@ -132,6 +167,14 @@ async function verifyContract() {
     );
   }
 
+  if (evaluation.resultingState === undefined) {
+    throw new Error("Expected /evaluate to return resultingState.");
+  }
+
+  if (evaluation.stateAdmissibility === undefined) {
+    throw new Error("Expected /evaluate to return stateAdmissibility.");
+  }
+
   const replay = await postJson<ReplayResponse>(`/replay/${encodeURIComponent(evaluation.id)}`);
   console.log("Replay response:", JSON.stringify(replay));
   assertReplayContract(replay);
@@ -142,7 +185,7 @@ async function main() {
 
   try {
     await verifyContract();
-    console.log("Replay execution outcome contract verified.");
+    console.log("Replay execution outcome and state transition contract verified.");
   } finally {
     stopServer(server);
   }
