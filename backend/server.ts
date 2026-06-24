@@ -97,7 +97,8 @@ function hasReplayInputs(entry: any): entry is LogEntry {
     (typeof entry?.actorRole === "string" || entry?.actorRole === null) &&
     (typeof entry?.requestedAuthority === "string" || entry?.requestedAuthority === null) &&
     typeof entry?.requiresApproval === "boolean" &&
-    typeof entry?.executionOutcome === "string"
+    typeof entry?.decision === "string" &&
+    typeof entry?.authorityMode === "string"
   );
 }
 
@@ -359,13 +360,15 @@ app.post("/replay/:id", (req, res) => {
     requestedAuthority: original.requestedAuthority,
     requiresApproval: original.requiresApproval,
   });
+  const originalExecutionOutcome =
+    original.executionOutcome ?? resolveExecutionOutcome(original.decision, original.authorityMode);
 
   return res.json({
     id: original.id,
     original: {
       decision: original.decision,
       authorityMode: original.authorityMode,
-      executionOutcome: original.executionOutcome,
+      executionOutcome: originalExecutionOutcome,
     },
     replayed: {
       decision: replayed.decision,
@@ -374,7 +377,7 @@ app.post("/replay/:id", (req, res) => {
     },
     decisionMatches: original.decision === replayed.decision,
     authorityMatches: original.authorityMode === replayed.authorityMode,
-    executionOutcomeMatches: original.executionOutcome === replayed.executionOutcome,
+    executionOutcomeMatches: originalExecutionOutcome === replayed.executionOutcome,
   });
 });
 
