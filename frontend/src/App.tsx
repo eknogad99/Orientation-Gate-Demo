@@ -1,6 +1,13 @@
 import { useState } from "react";
 
 type ExecutionOutcome = "EXECUTE" | "ESCALATE" | "DENY";
+type StateAdmissibility = "STATE_ADMISSIBLE" | "STATE_AT_RISK" | "STATE_INADMISSIBLE";
+
+type SystemModelState = {
+    stability: number;
+    configurationIntegrity: number;
+    resourcePressure: number;
+};
 
 type DecisionResponse = {
     id?: string;
@@ -9,6 +16,9 @@ type DecisionResponse = {
     authorityMode?: string;
     authorityReason?: string;
     executionOutcome?: ExecutionOutcome;
+    previousState?: SystemModelState;
+    resultingState?: SystemModelState;
+    stateAdmissibility?: StateAdmissibility;
     displacement: {
         temporal: string;
         system: string;
@@ -23,19 +33,30 @@ type ReplayResponse = {
         decision: string;
         authorityMode?: string;
         executionOutcome?: ExecutionOutcome;
+        resultingState?: SystemModelState;
+        stateAdmissibility?: StateAdmissibility;
     };
     replayed?: {
         decision: string;
         authorityMode?: string;
         executionOutcome?: ExecutionOutcome;
+        resultingState?: SystemModelState;
+        stateAdmissibility?: StateAdmissibility;
     };
     decisionMatches?: boolean;
     authorityMatches?: boolean;
     executionOutcomeMatches?: boolean;
+    stateTransitionMatches?: boolean;
     error?: string;
 };
 
 type AuthorityScenario = "none" | "approval" | "exceeds";
+
+const DEFAULT_STATE: SystemModelState = {
+    stability: 1.0,
+    configurationIntegrity: 1.0,
+    resourcePressure: 0.0,
+};
 
 function getAuthorityFields(authorityScenario: AuthorityScenario) {
     if (authorityScenario === "approval") {
@@ -73,6 +94,19 @@ function MatchIndicator({ matches }: { matches?: boolean }) {
         >
             {matches ? "OK" : "!"} {label}
         </span>
+    );
+}
+
+function StateDisplay({ label, state }: { label: string; state?: SystemModelState }) {
+    const visibleState = state ?? DEFAULT_STATE;
+
+    return (
+        <div style={{ marginBottom: "0.75rem" }}>
+            <strong>{label}</strong>
+            <div>Stability: {visibleState.stability.toFixed(2)}</div>
+            <div>Configuration Integrity: {visibleState.configurationIntegrity.toFixed(2)}</div>
+            <div>Resource Pressure: {visibleState.resourcePressure.toFixed(2)}</div>
+        </div>
     );
 }
 
@@ -129,6 +163,8 @@ export default function App() {
     const [decision, setDecision] = useState<DecisionResponse | null>(null);
     const [systemState, setSystemState] = useState("stable");
     const [authorityScenario, setAuthorityScenario] = useState<AuthorityScenario>("none");
+    const [currentState, setCurrentState] = useState<SystemModelState>(DEFAULT_STATE);
+    const [scenarioTrace, setScenarioTrace] = useState<DecisionResponse[]>([]);
     const [replayId, setReplayId] = useState("");
     const [isReplaying, setIsReplaying] = useState(false);
     const [replayResult, setReplayResult] = useState<ReplayResponse | null>(null);
@@ -145,22 +181,42 @@ export default function App() {
             ? originalReplayExecutionOutcome === replayedReplayExecutionOutcome
             : undefined);
 
+    const evaluateAction = async (
+        action: string,
+        stateForEvaluation: SystemModelState,
+        scenarioOverride: AuthorityScenario = authorityScenario
+    ) => {
+        const authorityFields = getAuthorityFields(scenarioOverride);
+
+        const response = await fetch("http://localhost:3001/evaluate", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                action,
+                systemState,
+                previousState: stateForEvaluation,
+                ...authorityFields,
+            }),
+        });
+
+        return response.json() as Promise<DecisionResponse>;
+    };
+
     const handleAction = async (action: string) => {
         try {
             setIsEvaluating(true);
             setDecision(null);
-            const authorityFields = getAuthorityFields(authorityScenario);
 
-            const response = await fetch("http://localhost:3001/evaluate", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ action, systemState, ...authorityFields }),
-            });
-
-            const data = await response.json();
+            const data = await evaluateAction(action, currentState);
             setDecision(data);
+            setScenarioTrace([]);
+
+            if (data.resultingState) {
+                setCurrentState(data.resultingState);
+            }
+
             if (data.id) {
                 setReplayId(data.id);
             }
@@ -170,6 +226,53 @@ export default function App() {
                 decision: "ERROR",
                 reason: "Failed to reach backend",
                 executionOutcome: "DENY",
+                previousState: currentState,
+                resultingState: currentState,
+                stateAdmissibility: "STATE_INADMISSIBLE",
+                displacement: {
+                    temporal: "UNKNOWN",
+                    system: "UNKNOWN",
+                    energy: "UNKNOWN",
+                },
+                confidence: 0,
+            });
+        } finally {
+            setIsEvaluating(false);
+        }
+    };
+
+    const runScenario = async (actions: string[]) => {
+        try {
+            setIsEvaluating(true);
+            setReplayResult(null);
+            setScenarioTrace([]);
+            setDecision(null);
+
+            let state = DEFAULT_STATE;
+            const results: DecisionResponse[] = [];
+
+            for (const action of actions) {
+                const result = await evaluateAction(action, state, "none");
+                results.push(result);
+                state = result.resultingState ?? state;
+            }
+
+            setCurrentState(state);
+            setScenarioTrace(results);
+            const latest = results[results.length - 1] ?? null;
+            setDecision(latest);
+
+            if (latest?.id) {
+                setReplayId(latest.id);
+            }
+        } catch {
+            setDecision({
+                decision: "ERROR",
+                reason: "Failed to run scenario",
+                executionOutcome: "DENY",
+                previousState: currentState,
+                resultingState: currentState,
+                stateAdmissibility: "STATE_INADMISSIBLE",
                 displacement: {
                     temporal: "UNKNOWN",
                     system: "UNKNOWN",
@@ -246,6 +349,31 @@ export default function App() {
                 <button onClick={() => handleAction("safe_read")}>Safe Read Operation</button>
                 <button onClick={() => handleAction("config_change")}>Config Change</button>
                 <button onClick={() => handleAction("deploy_update")}>Deploy Code Update</button>
+                <button onClick={() => setCurrentState(DEFAULT_STATE)}>Reset State</button>
+            </div>
+
+            <div style={{ border: "1px solid #64748b", padding: "1rem", borderRadius: "8px", marginBottom: "1rem" }}>
+                <h2>State Transition Governance Demo</h2>
+                <p>Demonstrates that ALLOW + ALLOW + ALLOW does not necessarily imply an admissible resulting state.</p>
+                <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+                    <button onClick={() => runScenario(["safe_read", "safe_read", "config_change"])}>
+                        Scenario A: 3 Allowed Actions → State Admissible
+                    </button>
+                    <button onClick={() => runScenario(["config_change", "config_change", "config_change"])}>
+                        Scenario B: 3 Allowed Actions → State Inadmissible
+                    </button>
+                </div>
+                <StateDisplay label="Current State" state={currentState} />
+                {scenarioTrace.length > 0 && (
+                    <div>
+                        <strong>Scenario Trace:</strong>
+                        {scenarioTrace.map((entry, index) => (
+                            <div key={`${entry.id}-${index}`} style={{ marginTop: "0.5rem" }}>
+                                {index + 1}. {entry.decision} / {entry.executionOutcome} / {entry.stateAdmissibility}
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {isEvaluating && (
@@ -313,6 +441,13 @@ export default function App() {
                             )}
                         </div>
                     )}
+
+                    <div style={{ marginTop: "1rem", borderTop: "1px solid #64748b", paddingTop: "1rem" }}>
+                        <h3>State Transition Layer</h3>
+                        <StateDisplay label="Previous State" state={decision.previousState} />
+                        <StateDisplay label="Resulting State" state={decision.resultingState} />
+                        <p><strong>State Admissibility:</strong> {decision.stateAdmissibility}</p>
+                    </div>
                 </div>
             )}
 
@@ -356,6 +491,12 @@ export default function App() {
                                 <p>
                                     <strong>Execution Outcome Match:</strong> {String(replayExecutionOutcomeMatches)}
                                     <MatchIndicator matches={replayExecutionOutcomeMatches} />
+                                </p>
+                                <p><strong>Original State Admissibility:</strong> {replayResult.original?.stateAdmissibility}</p>
+                                <p><strong>Replayed State Admissibility:</strong> {replayResult.replayed?.stateAdmissibility}</p>
+                                <p>
+                                    <strong>State Transition Match:</strong> {String(replayResult.stateTransitionMatches)}
+                                    <MatchIndicator matches={replayResult.stateTransitionMatches} />
                                 </p>
                             </>
                         )}
