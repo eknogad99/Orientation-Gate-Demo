@@ -100,6 +100,30 @@ function getExecutionOutcomeStyles(executionOutcome?: ExecutionOutcome) {
     };
 }
 
+function resolveExecutionOutcome(decision?: string, authorityMode?: string): ExecutionOutcome | undefined {
+    if (decision === "BLOCK") {
+        return "DENY";
+    }
+
+    if (authorityMode === "BLOCKED") {
+        return "DENY";
+    }
+
+    if (authorityMode === "SUPERVISED") {
+        return "ESCALATE";
+    }
+
+    if (decision === "WARN") {
+        return "ESCALATE";
+    }
+
+    if (decision === "ALLOW") {
+        return "EXECUTE";
+    }
+
+    return undefined;
+}
+
 export default function App() {
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [decision, setDecision] = useState<DecisionResponse | null>(null);
@@ -108,6 +132,18 @@ export default function App() {
     const [replayId, setReplayId] = useState("");
     const [isReplaying, setIsReplaying] = useState(false);
     const [replayResult, setReplayResult] = useState<ReplayResponse | null>(null);
+
+    const originalReplayExecutionOutcome =
+        replayResult?.original?.executionOutcome ??
+        resolveExecutionOutcome(replayResult?.original?.decision, replayResult?.original?.authorityMode);
+    const replayedReplayExecutionOutcome =
+        replayResult?.replayed?.executionOutcome ??
+        resolveExecutionOutcome(replayResult?.replayed?.decision, replayResult?.replayed?.authorityMode);
+    const replayExecutionOutcomeMatches =
+        replayResult?.executionOutcomeMatches ??
+        (originalReplayExecutionOutcome !== undefined && replayedReplayExecutionOutcome !== undefined
+            ? originalReplayExecutionOutcome === replayedReplayExecutionOutcome
+            : undefined);
 
     const handleAction = async (action: string) => {
         try {
@@ -315,11 +351,11 @@ export default function App() {
                                     <strong>Authority Match:</strong> {String(replayResult.authorityMatches)}
                                     <MatchIndicator matches={replayResult.authorityMatches} />
                                 </p>
-                                <p><strong>Original Execution Outcome:</strong> {replayResult.original?.executionOutcome}</p>
-                                <p><strong>Replayed Execution Outcome:</strong> {replayResult.replayed?.executionOutcome}</p>
+                                <p><strong>Original Execution Outcome:</strong> {originalReplayExecutionOutcome}</p>
+                                <p><strong>Replayed Execution Outcome:</strong> {replayedReplayExecutionOutcome}</p>
                                 <p>
-                                    <strong>Execution Outcome Match:</strong> {String(replayResult.executionOutcomeMatches)}
-                                    <MatchIndicator matches={replayResult.executionOutcomeMatches} />
+                                    <strong>Execution Outcome Match:</strong> {String(replayExecutionOutcomeMatches)}
+                                    <MatchIndicator matches={replayExecutionOutcomeMatches} />
                                 </p>
                             </>
                         )}
