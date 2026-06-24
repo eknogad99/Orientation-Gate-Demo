@@ -110,6 +110,90 @@ function StateDisplay({ label, state }: { label: string; state?: SystemModelStat
     );
 }
 
+function getStateAdmissibilityStyles(stateAdmissibility?: StateAdmissibility) {
+    if (stateAdmissibility === "STATE_ADMISSIBLE") {
+        return {
+            border: "2px solid #22c55e",
+            background: "#052e16",
+            color: "#bbf7d0",
+        };
+    }
+
+    if (stateAdmissibility === "STATE_AT_RISK") {
+        return {
+            border: "2px solid #f59e0b",
+            background: "#451a03",
+            color: "#fde68a",
+        };
+    }
+
+    return {
+        border: "2px solid #ef4444",
+        background: "#450a0a",
+        color: "#fecaca",
+    };
+}
+
+function CumulativeStateResultPanel({ trace }: { trace: DecisionResponse[] }) {
+    if (trace.length === 0) {
+        return null;
+    }
+
+    return (
+        <div
+            style={{
+                border: "1px solid #94a3b8",
+                borderRadius: "12px",
+                padding: "1rem",
+                marginTop: "1rem",
+                marginBottom: "1rem",
+                background: "#020617",
+            }}
+        >
+            <div
+                style={{
+                    fontSize: "0.85rem",
+                    fontWeight: "bold",
+                    letterSpacing: "0.14em",
+                    marginBottom: "0.75rem",
+                    textAlign: "center",
+                }}
+            >
+                CUMULATIVE STATE RESULT
+            </div>
+
+            {trace.map((entry, index) => (
+                <div key={`${entry.id}-state-result-${index}`}>
+                    <div
+                        style={{
+                            ...getStateAdmissibilityStyles(entry.stateAdmissibility),
+                            borderRadius: "10px",
+                            padding: "1rem",
+                            textAlign: "center",
+                            fontSize: "1.35rem",
+                            fontWeight: "bold",
+                        }}
+                    >
+                        {entry.stateAdmissibility}
+                    </div>
+                    {index < trace.length - 1 && (
+                        <div
+                            style={{
+                                textAlign: "center",
+                                fontSize: "2rem",
+                                lineHeight: "2.4rem",
+                                color: "#cbd5e1",
+                            }}
+                        >
+                            ↓
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
 function getExecutionOutcomeStyles(executionOutcome?: ExecutionOutcome) {
     if (executionOutcome === "EXECUTE") {
         return {
@@ -366,6 +450,7 @@ export default function App() {
                 <StateDisplay label="Current State" state={currentState} />
                 {scenarioTrace.length > 0 && (
                     <div>
+                        <CumulativeStateResultPanel trace={scenarioTrace} />
                         <strong>Scenario Trace:</strong>
                         {scenarioTrace.map((entry, index) => (
                             <div key={`${entry.id}-${index}`} style={{ marginTop: "0.5rem" }}>
