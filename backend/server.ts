@@ -60,6 +60,9 @@ type EvaluationRequestInputs = {
 
 type LogEntry = EvaluationRequestInputs & EvaluationResponse;
 type EvaluationCoreResponse = Omit<EvaluationResponse, "id" | "timestamp">;
+type EvaluationCoreResponseInput = Omit<EvaluationCoreResponse, "executionOutcome"> & {
+  executionOutcome?: ExecutionOutcome;
+};
 
 const LOGS_FILE_PATH = path.join(process.cwd(), "logs.json");
 
@@ -226,7 +229,7 @@ function resolveExecutionOutcome(decision: Decision, authorityMode: AuthorityMod
   return "EXECUTE";
 }
 
-function normalizeEvaluationResponse(response: EvaluationCoreResponse): EvaluationCoreResponse {
+function normalizeEvaluationResponse(response: EvaluationCoreResponseInput): EvaluationCoreResponse {
   return {
     ...response,
     executionOutcome: response.executionOutcome ?? resolveExecutionOutcome(response.decision, response.authorityMode),
