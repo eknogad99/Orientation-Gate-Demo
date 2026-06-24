@@ -12,11 +12,18 @@ app.use(express.json());
 type Decision = "ALLOW" | "WARN" | "BLOCK";
 type AuthorityMode = "AUTONOMOUS" | "SUPERVISED" | "BLOCKED";
 type ExecutionOutcome = "EXECUTE" | "ESCALATE" | "DENY";
+type StateAdmissibility = "STATE_ADMISSIBLE" | "STATE_AT_RISK" | "STATE_INADMISSIBLE";
 
 type Displacement = {
   temporal: string;
   system: string;
   energy: string;
+};
+
+type SystemModelState = {
+  stability: number;
+  configurationIntegrity: number;
+  resourcePressure: number;
 };
 
 type EvaluationResponse = {
@@ -29,6 +36,9 @@ type EvaluationResponse = {
   authorityMode: AuthorityMode;
   authorityReason: string;
   executionOutcome: ExecutionOutcome;
+  previousState: SystemModelState;
+  resultingState: SystemModelState;
+  stateAdmissibility: StateAdmissibility;
   confidence: number;
   timestamp: string;
 };
@@ -39,15 +49,20 @@ type ReplayResponse = {
     decision: Decision;
     authorityMode: AuthorityMode;
     executionOutcome: ExecutionOutcome;
+    resultingState: SystemModelState;
+    stateAdmissibility: StateAdmissibility;
   };
   replayed: {
     decision: Decision;
     authorityMode: AuthorityMode;
     executionOutcome: ExecutionOutcome;
+    resultingState: SystemModelState;
+    stateAdmissibility: StateAdmissibility;
   };
   decisionMatches: boolean;
   authorityMatches: boolean;
   executionOutcomeMatches: boolean;
+  stateTransitionMatches: boolean;
 };
 
 type EvaluationRequestInputs = {
@@ -56,12 +71,25 @@ type EvaluationRequestInputs = {
   actorRole: string | null;
   requestedAuthority: string | null;
   requiresApproval: boolean;
+  previousState: SystemModelState;
 };
 
 type LogEntry = EvaluationRequestInputs & EvaluationResponse;
 type EvaluationCoreResponse = Omit<EvaluationResponse, "id" | "timestamp">;
-type EvaluationCoreResponseInput = Omit<EvaluationCoreResponse, "executionOutcome"> & {
+type EvaluationCoreResponseInput = Omit<
+  EvaluationCoreResponse,
+  "executionOutcome" | "previousState" | "resultingState" | "stateAdmissibility"
+> & {
   executionOutcome?: ExecutionOutcome;
+  previousState?: SystemModelState;
+  resultingState?: SystemModelState;
+  stateAdmissibility?: StateAdmissibility;
+};
+
+const DEFAULT_SYSTEM_MODEL_STATE: SystemModelState = {
+  stability: 1.0,
+  configurationIntegrity: 1.0,
+  resourcePressure: 0.0,
 };
 
 const LOGS_FILE_PATH = path.join(process.cwd(), "logs.json");
@@ -99,6 +127,27 @@ function createEvaluationId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function clampMetric(value: number) {
+  return Math.min(1, Math.max(0, Number(value.toFixed(2))));
+}
+
+function parseState(value: any): SystemModelState {
+  return {
+    stability:
+      typeof value?.stability === "number"
+        ? clampMetric(value.stability)
+        : DEFAULT_SYSTEM_MODEL_STATE.stability,
+    configurationIntegrity:
+      typeof value?.configurationIntegrity === "number"
+        ? clampMetric(value.configurationIntegrity)
+        : DEFAULT_SYSTEM_MODEL_STATE.configurationIntegrity,
+    resourcePressure:
+      typeof value?.resourcePressure === "number"
+        ? clampMetric(value.resourcePressure)
+        : DEFAULT_SYSTEM_MODEL_STATE.resourcePressure,
+  };
+}
+
 function parseEvaluationInputs(body: any): EvaluationRequestInputs {
   return {
     action: body?.action ?? "",
@@ -107,6 +156,7 @@ function parseEvaluationInputs(body: any): EvaluationRequestInputs {
     requestedAuthority:
       typeof body?.requestedAuthority === "string" ? body.requestedAuthority : null,
     requiresApproval: body?.requiresApproval === true || body?.requiresApproval === "true",
+    previousState: parseState(body?.previousState),
   };
 }
 
@@ -229,10 +279,86 @@ function resolveExecutionOutcome(decision: Decision, authorityMode: AuthorityMod
   return "EXECUTE";
 }
 
+function applyStateTransition(action: string, previousState: SystemModelState): SystemModelState {
+  if (action === "config_change") {
+    return {
+      stability: previousState.stability,
+      configurationIntegrity: clampMetric(previousState.configurationIntegrity - 0.25),
+      resourcePressure: clampMetric(previousState.resourcePressure + 0.05),
+    };
+  }
+
+  if (action === "deploy_update") {
+    return {
+      stability: clampMetric(previousState.stability - 0.1),
+      configurationIntegrity: previousState.configurationIntegrity,
+      resourcePressure: clampMetric(previousState.resourcePressure + 0.3),
+    };
+  }
+
+  return {
+    stability: previousState.stability,
+    configurationIntegrity: previousState.configurationIntegrity,
+    resourcePressure: previousState.resourcePressure,
+  };
+}
+
+function evaluateStateAdmissibility(state: SystemModelState): StateAdmissibility {
+  if (
+    state.stability < 0.5 ||
+    state.configurationIntegrity < 0.5 ||
+    state.resourcePressure > 0.8
+  ) {
+    return "STATE_INADMISSIBLE";
+  }
+
+  if (
+    state.stability < 0.7 ||
+    state.configurationIntegrity < 0.7 ||
+    state.resourcePressure > 0.6
+  ) {
+    return "STATE_AT_RISK";
+  }
+
+  return "STATE_ADMISSIBLE";
+}
+
+function statesMatch(a: SystemModelState, b: SystemModelState) {
+  return (
+    a.stability === b.stability &&
+    a.configurationIntegrity === b.configurationIntegrity &&
+    a.resourcePressure === b.resourcePressure
+  );
+}
+
+function actionFromLabel(actionAttempted: string) {
+  if (actionAttempted === "Config Change" || actionAttempted === "Config Change with Drift Risk") {
+    return "config_change";
+  }
+
+  if (actionAttempted === "Deploy Code Update") {
+    return "deploy_update";
+  }
+
+  if (actionAttempted === "Safe Read Operation") {
+    return "safe_read";
+  }
+
+  return "";
+}
+
 function normalizeEvaluationResponse(response: EvaluationCoreResponseInput): EvaluationCoreResponse {
+  const previousState = response.previousState ?? DEFAULT_SYSTEM_MODEL_STATE;
+  const resultingState =
+    response.resultingState ?? applyStateTransition(actionFromLabel(response.actionAttempted), previousState);
+
   return {
     ...response,
     executionOutcome: response.executionOutcome ?? resolveExecutionOutcome(response.decision, response.authorityMode),
+    previousState,
+    resultingState,
+    stateAdmissibility:
+      response.stateAdmissibility ?? evaluateStateAdmissibility(resultingState),
   };
 }
 
@@ -240,6 +366,11 @@ function buildReplayResponse(original: LogEntry, replayed: EvaluationCoreRespons
   const normalizedReplay = normalizeEvaluationResponse(replayed);
   const originalExecutionOutcome =
     original.executionOutcome ?? resolveExecutionOutcome(original.decision, original.authorityMode);
+  const originalPreviousState = original.previousState ?? DEFAULT_SYSTEM_MODEL_STATE;
+  const originalResultingState =
+    original.resultingState ?? applyStateTransition(original.action, originalPreviousState);
+  const originalStateAdmissibility =
+    original.stateAdmissibility ?? evaluateStateAdmissibility(originalResultingState);
 
   return {
     id: original.id,
@@ -247,15 +378,22 @@ function buildReplayResponse(original: LogEntry, replayed: EvaluationCoreRespons
       decision: original.decision,
       authorityMode: original.authorityMode,
       executionOutcome: originalExecutionOutcome,
+      resultingState: originalResultingState,
+      stateAdmissibility: originalStateAdmissibility,
     },
     replayed: {
       decision: normalizedReplay.decision,
       authorityMode: normalizedReplay.authorityMode,
       executionOutcome: normalizedReplay.executionOutcome,
+      resultingState: normalizedReplay.resultingState,
+      stateAdmissibility: normalizedReplay.stateAdmissibility,
     },
     decisionMatches: original.decision === normalizedReplay.decision,
     authorityMatches: original.authorityMode === normalizedReplay.authorityMode,
     executionOutcomeMatches: originalExecutionOutcome === normalizedReplay.executionOutcome,
+    stateTransitionMatches:
+      statesMatch(originalResultingState, normalizedReplay.resultingState) &&
+      originalStateAdmissibility === normalizedReplay.stateAdmissibility,
   };
 }
 
@@ -265,14 +403,25 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
     inputs.requestedAuthority ?? undefined,
     inputs.requiresApproval
   );
+  const resultingState = applyStateTransition(inputs.action, inputs.previousState);
+  const stateAdmissibility = evaluateStateAdmissibility(resultingState);
 
-  const withExecutionOutcome = (
-    response: Omit<EvaluationCoreResponse, "executionOutcome">
-  ): EvaluationCoreResponse => normalizeEvaluationResponse(response);
+  const withGovernanceOutcomes = (
+    response: Omit<
+      EvaluationCoreResponse,
+      "executionOutcome" | "previousState" | "resultingState" | "stateAdmissibility"
+    >
+  ): EvaluationCoreResponse =>
+    normalizeEvaluationResponse({
+      ...response,
+      previousState: inputs.previousState,
+      resultingState,
+      stateAdmissibility,
+    });
 
   // SAFE READ
   if (inputs.action === "safe_read") {
-    return withExecutionOutcome({
+    return withGovernanceOutcomes({
       actionAttempted: "Safe Read Operation",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -290,7 +439,7 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
   // CONFIG CHANGE
   if (inputs.action === "config_change") {
     if (inputs.systemState === "drift") {
-      return withExecutionOutcome({
+      return withGovernanceOutcomes({
         actionAttempted: "Config Change with Drift Risk",
         coherenceCheck: "DEGRADED",
         decision: "WARN",
@@ -305,7 +454,7 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
       });
     }
 
-    return withExecutionOutcome({
+    return withGovernanceOutcomes({
       actionAttempted: "Config Change",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -320,10 +469,10 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
     });
   }
 
-  // DEPLOY UPDATE (THIS IS THE IMPORTANT ONE)
+  // DEPLOY UPDATE
   if (inputs.action === "deploy_update") {
     if (inputs.systemState === "drift") {
-      return withExecutionOutcome({
+      return withGovernanceOutcomes({
         actionAttempted: "Deploy Code Update",
         coherenceCheck: "FAILED",
         decision: "BLOCK",
@@ -338,7 +487,7 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
       });
     }
 
-    return withExecutionOutcome({
+    return withGovernanceOutcomes({
       actionAttempted: "Deploy Code Update",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -353,7 +502,7 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
     });
   }
 
-  return withExecutionOutcome({
+  return withGovernanceOutcomes({
     actionAttempted: "Unknown Action",
     coherenceCheck: "PASSED",
     decision: "ALLOW",
@@ -408,6 +557,7 @@ app.post("/replay/:id", (req, res) => {
       actorRole: original.actorRole,
       requestedAuthority: original.requestedAuthority,
       requiresApproval: original.requiresApproval,
+      previousState: original.previousState ?? DEFAULT_SYSTEM_MODEL_STATE,
     })
   );
 
