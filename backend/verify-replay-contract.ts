@@ -22,7 +22,9 @@ const BASE_URL = `http://localhost:${VERIFY_PORT}`;
 
 function startServer(): Promise<ChildProcessWithoutNullStreams> {
   return new Promise((resolve, reject) => {
-    const server = spawn("tsx", ["server.ts"], {
+    const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+
+    const server = spawn(npmCommand, ["run", "dev"], {
       cwd: process.cwd(),
       env: {
         ...process.env,
