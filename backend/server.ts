@@ -11,6 +11,7 @@ app.use(express.json());
 
 type Decision = "ALLOW" | "WARN" | "BLOCK";
 type AuthorityMode = "AUTONOMOUS" | "SUPERVISED" | "BLOCKED";
+type ExecutionOutcome = "EXECUTE" | "ESCALATE" | "DENY";
 
 type Displacement = {
   temporal: string;
@@ -27,6 +28,7 @@ type EvaluationResponse = {
   displacement: Displacement;
   authorityMode: AuthorityMode;
   authorityReason: string;
+  executionOutcome: ExecutionOutcome;
   confidence: number;
   timestamp: string;
 };
@@ -94,11 +96,11 @@ function hasReplayInputs(entry: any): entry is LogEntry {
     typeof entry?.systemState === "string" &&
     (typeof entry?.actorRole === "string" || entry?.actorRole === null) &&
     (typeof entry?.requestedAuthority === "string" || entry?.requestedAuthority === null) &&
-    typeof entry?.requiresApproval === "boolean"
+    typeof entry?.requiresApproval === "boolean" &&
+    typeof entry?.executionOutcome === "string"
   );
 }
 
- http://localhost:3001
 app.get("/", (_req, res) => {
   res.send("Orientation Gate backend alive");
 });
@@ -186,56 +188,24 @@ function evaluateAuthority(
   };
 }
 
-function evaluateAction(action: string, systemState: string) {
-  if (action === "Deploy Code Update") {
-    if (systemState === "drift") {
-      return {
-        decision: "BLOCK",
-        reason: "System already in drift — deployment amplifies instability",
-        displacement: {
-          temporal: "HIGH",
-          system: "HIGH",
-          energy: "MEDIUM",
-        },
-        confidence: 0.93,
-      };
-    }
-
-    return {
-      decision: "ALLOW",
-      reason: "System stable — deployment within safe bounds",
-      displacement: {
-        temporal: "LOW",
-        system: "LOW",
-        energy: "LOW",
-      },
-      confidence: 0.89,
-    };
+function resolveExecutionOutcome(decision: Decision, authorityMode: AuthorityMode): ExecutionOutcome {
+  if (decision === "BLOCK") {
+    return "DENY";
   }
 
-  if (action === "Config Change with Drift Risk") {
-    return {
-      decision: "WARN",
-      reason: "Policy alignment uncertainty detected",
-      displacement: {
-        temporal: "MEDIUM",
-        system: "MEDIUM",
-        energy: "LOW",
-      },
-      confidence: 0.72,
-    };
+  if (authorityMode === "BLOCKED") {
+    return "DENY";
   }
 
-  return {
-    decision: "ALLOW",
-    reason: "No critical displacement detected",
-    displacement: {
-      temporal: "LOW",
-      system: "LOW",
-      energy: "LOW",
-    },
-    confidence: 0.98,
-  };
+  if (authorityMode === "SUPERVISED") {
+    return "ESCALATE";
+  }
+
+  if (decision === "WARN") {
+    return "ESCALATE";
+  }
+
+  return "EXECUTE";
 }
 
 function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCoreResponse {
@@ -245,9 +215,16 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
     inputs.requiresApproval
   );
 
+  const withExecutionOutcome = (
+    response: Omit<EvaluationCoreResponse, "executionOutcome">
+  ): EvaluationCoreResponse => ({
+    ...response,
+    executionOutcome: resolveExecutionOutcome(response.decision, response.authorityMode),
+  });
+
   // SAFE READ
   if (inputs.action === "safe_read") {
-    return {
+    return withExecutionOutcome({
       actionAttempted: "Safe Read Operation",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -259,13 +236,13 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
       },
       confidence: 0.98,
       ...authority,
-    };
+    });
   }
 
   // CONFIG CHANGE
   if (inputs.action === "config_change") {
     if (inputs.systemState === "drift") {
-      return {
+      return withExecutionOutcome({
         actionAttempted: "Config Change with Drift Risk",
         coherenceCheck: "DEGRADED",
         decision: "WARN",
@@ -277,10 +254,10 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
         },
         confidence: 0.72,
         ...authority,
-      };
+      });
     }
 
-    return {
+    return withExecutionOutcome({
       actionAttempted: "Config Change",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -292,13 +269,13 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
       },
       confidence: 0.9,
       ...authority,
-    };
+    });
   }
 
   // DEPLOY UPDATE (THIS IS THE IMPORTANT ONE)
   if (inputs.action === "deploy_update") {
     if (inputs.systemState === "drift") {
-      return {
+      return withExecutionOutcome({
         actionAttempted: "Deploy Code Update",
         coherenceCheck: "FAILED",
         decision: "BLOCK",
@@ -310,10 +287,10 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
         },
         confidence: 0.91,
         ...authority,
-      };
+      });
     }
 
-    return {
+    return withExecutionOutcome({
       actionAttempted: "Deploy Code Update",
       coherenceCheck: "PASSED",
       decision: "ALLOW",
@@ -325,10 +302,10 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
       },
       confidence: 0.95,
       ...authority,
-    };
+    });
   }
 
-  return {
+  return withExecutionOutcome({
     actionAttempted: "Unknown Action",
     coherenceCheck: "PASSED",
     decision: "ALLOW",
@@ -340,7 +317,7 @@ function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCor
     },
     confidence: 0.8,
     ...authority,
-  };
+  });
 }
 
 app.post("/evaluate", (req, res) => {
@@ -388,13 +365,16 @@ app.post("/replay/:id", (req, res) => {
     original: {
       decision: original.decision,
       authorityMode: original.authorityMode,
+      executionOutcome: original.executionOutcome,
     },
     replayed: {
       decision: replayed.decision,
       authorityMode: replayed.authorityMode,
+      executionOutcome: replayed.executionOutcome,
     },
     decisionMatches: original.decision === replayed.decision,
     authorityMatches: original.authorityMode === replayed.authorityMode,
+    executionOutcomeMatches: original.executionOutcome === replayed.executionOutcome,
   });
 });
 
