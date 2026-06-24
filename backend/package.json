@@ -4,7 +4,8 @@
   "main": "server.ts",
   "scripts": {
     "dev": "tsx server.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "replay-contract": "tsx verify-replay-contract.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",
