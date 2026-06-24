@@ -30,6 +30,7 @@ function startServer(): Promise<ChildProcessWithoutNullStreams> {
         ...process.env,
         PORT: String(VERIFY_PORT),
       },
+      shell: process.platform === "win32",
     });
 
     let resolved = false;
