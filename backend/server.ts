@@ -33,6 +33,23 @@ type EvaluationResponse = {
   timestamp: string;
 };
 
+type ReplayResponse = {
+  id: string;
+  original: {
+    decision: Decision;
+    authorityMode: AuthorityMode;
+    executionOutcome: ExecutionOutcome;
+  };
+  replayed: {
+    decision: Decision;
+    authorityMode: AuthorityMode;
+    executionOutcome: ExecutionOutcome;
+  };
+  decisionMatches: boolean;
+  authorityMatches: boolean;
+  executionOutcomeMatches: boolean;
+};
+
 type EvaluationRequestInputs = {
   action: string;
   systemState: string;
@@ -209,6 +226,28 @@ function resolveExecutionOutcome(decision: Decision, authorityMode: AuthorityMod
   return "EXECUTE";
 }
 
+function buildReplayResponse(original: LogEntry, replayed: EvaluationCoreResponse): ReplayResponse {
+  const originalExecutionOutcome =
+    original.executionOutcome ?? resolveExecutionOutcome(original.decision, original.authorityMode);
+
+  return {
+    id: original.id,
+    original: {
+      decision: original.decision,
+      authorityMode: original.authorityMode,
+      executionOutcome: originalExecutionOutcome,
+    },
+    replayed: {
+      decision: replayed.decision,
+      authorityMode: replayed.authorityMode,
+      executionOutcome: replayed.executionOutcome,
+    },
+    decisionMatches: original.decision === replayed.decision,
+    authorityMatches: original.authorityMode === replayed.authorityMode,
+    executionOutcomeMatches: originalExecutionOutcome === replayed.executionOutcome,
+  };
+}
+
 function buildEvaluationResponse(inputs: EvaluationRequestInputs): EvaluationCoreResponse {
   const authority = evaluateAuthority(
     inputs.actorRole ?? undefined,
@@ -360,25 +399,8 @@ app.post("/replay/:id", (req, res) => {
     requestedAuthority: original.requestedAuthority,
     requiresApproval: original.requiresApproval,
   });
-  const originalExecutionOutcome =
-    original.executionOutcome ?? resolveExecutionOutcome(original.decision, original.authorityMode);
 
-  return res.json({
-    id: original.id,
-    original: {
-      decision: original.decision,
-      authorityMode: original.authorityMode,
-      executionOutcome: originalExecutionOutcome,
-    },
-    replayed: {
-      decision: replayed.decision,
-      authorityMode: replayed.authorityMode,
-      executionOutcome: replayed.executionOutcome,
-    },
-    decisionMatches: original.decision === replayed.decision,
-    authorityMatches: original.authorityMode === replayed.authorityMode,
-    executionOutcomeMatches: originalExecutionOutcome === replayed.executionOutcome,
-  });
+  return res.json(buildReplayResponse(original, replayed));
 });
 
 app.listen(PORT, () => {
