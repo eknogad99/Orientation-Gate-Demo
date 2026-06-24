@@ -1,11 +1,14 @@
 import { useState } from "react";
 
+type ExecutionOutcome = "EXECUTE" | "ESCALATE" | "DENY";
+
 type DecisionResponse = {
     id?: string;
     decision: string;
     reason: string;
     authorityMode?: string;
     authorityReason?: string;
+    executionOutcome?: ExecutionOutcome;
     displacement: {
         temporal: string;
         system: string;
@@ -19,13 +22,16 @@ type ReplayResponse = {
     original?: {
         decision: string;
         authorityMode?: string;
+        executionOutcome?: ExecutionOutcome;
     };
     replayed?: {
         decision: string;
         authorityMode?: string;
+        executionOutcome?: ExecutionOutcome;
     };
     decisionMatches?: boolean;
     authorityMatches?: boolean;
+    executionOutcomeMatches?: boolean;
     error?: string;
 };
 
@@ -70,6 +76,30 @@ function MatchIndicator({ matches }: { matches?: boolean }) {
     );
 }
 
+function getExecutionOutcomeStyles(executionOutcome?: ExecutionOutcome) {
+    if (executionOutcome === "EXECUTE") {
+        return {
+            border: "2px solid #22c55e",
+            background: "#052e16",
+            color: "#bbf7d0",
+        };
+    }
+
+    if (executionOutcome === "ESCALATE") {
+        return {
+            border: "2px solid #f59e0b",
+            background: "#451a03",
+            color: "#fde68a",
+        };
+    }
+
+    return {
+        border: "2px solid #ef4444",
+        background: "#450a0a",
+        color: "#fecaca",
+    };
+}
+
 export default function App() {
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [decision, setDecision] = useState<DecisionResponse | null>(null);
@@ -103,6 +133,7 @@ export default function App() {
             setDecision({
                 decision: "ERROR",
                 reason: "Failed to reach backend",
+                executionOutcome: "DENY",
                 displacement: {
                     temporal: "UNKNOWN",
                     system: "UNKNOWN",
@@ -189,6 +220,23 @@ export default function App() {
 
             {decision && (
                 <div style={{ border: "1px solid #ccc", padding: "1rem", borderRadius: "8px" }}>
+                    <div
+                        style={{
+                            ...getExecutionOutcomeStyles(decision.executionOutcome),
+                            padding: "1rem",
+                            borderRadius: "10px",
+                            marginBottom: "1rem",
+                            textAlign: "center",
+                        }}
+                    >
+                        <div style={{ fontSize: "0.85rem", fontWeight: "bold", letterSpacing: "0.12em" }}>
+                            EXECUTION RESULT
+                        </div>
+                        <div style={{ fontSize: "2.75rem", fontWeight: "bold", marginTop: "0.25rem" }}>
+                            {decision.executionOutcome ?? "DENY"}
+                        </div>
+                    </div>
+
                     <h2>Pre-Execution Decision: {decision.decision}</h2>
                     {decision.id && (
                         <div
@@ -266,6 +314,12 @@ export default function App() {
                                 <p>
                                     <strong>Authority Match:</strong> {String(replayResult.authorityMatches)}
                                     <MatchIndicator matches={replayResult.authorityMatches} />
+                                </p>
+                                <p><strong>Original Execution Outcome:</strong> {replayResult.original?.executionOutcome}</p>
+                                <p><strong>Replayed Execution Outcome:</strong> {replayResult.replayed?.executionOutcome}</p>
+                                <p>
+                                    <strong>Execution Outcome Match:</strong> {String(replayResult.executionOutcomeMatches)}
+                                    <MatchIndicator matches={replayResult.executionOutcomeMatches} />
                                 </p>
                             </>
                         )}
