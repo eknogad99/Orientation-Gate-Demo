@@ -22,6 +22,14 @@ Orientation is another measurable property.
 It asks whether the organization's current state, delegated authority, operating context, and intended purpose remain sufficiently aligned for an important action to become reality.
 
 Orientation Gate™ assesses that condition before consequential execution.
+| Organizations Measure | Question Answered |
+|---|---|
+| Security | Is it protected? |
+| Compliance | Is it permitted? |
+| Maturity | How developed is it? |
+| Readiness | Can it begin? |
+| Capability | Can it perform? |
+| **Orientation** | **Should it presently proceed to consequential execution?** |
 
 ---
 ## Orientation Principle
@@ -59,6 +67,43 @@ Execution Layer
 The objective is simple:
 
 > Prevent inadmissible execution before consequential actions become reality.
+
+---
+## Architecture
+
+Orientation Gate™ sits between a proposed action and its execution.
+
+The following execution-governance pipeline illustrates how every proposed action is evaluated before execution.
+
+```text
+Agent / Workflow
+        ↓
+Operational Evaluation
+        ↓
+ALLOW | WARN | BLOCK
+        ↓
+Authority Evaluation
+        ↓
+AUTONOMOUS | SUPERVISED | BLOCKED
+        ↓
+Evaluation Logging
+        ↓
+Replay Verification
+        ↓
+Execution Consequence
+```
+
+Each stage contributes distinct evidence. Together, they determine whether a proposed action should proceed to execution.
+
+Operational evaluation determines whether an action is admissible under current system conditions.
+
+Authority evaluation determines whether the requesting actor may exercise the required level of authority.
+
+Evaluation logging records the decision and its inputs.
+
+Replay verification tests whether the recorded decision can be reproduced.
+
+Together, these functions form the Version 1.0 execution-governance architecture.
 
 
 ## Current Capabilities
