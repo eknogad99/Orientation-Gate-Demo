@@ -1,8 +1,14 @@
-# Orientation Gate
+# Orientation Gate™
 
 ### Governing Consequential Execution
 
-Orientation Gate is a pre-execution governance layer for autonomous and agentic systems.
+Orientation Gate™ is an execution-governance layer that evaluates the admissibility of consequential actions before execution.
+
+In plain language:
+
+> Orientation Gate™ helps organizations decide whether an important action should happen before it happens.
+
+It evaluates a proposed action against current conditions, applicable policy, and delegated authority before that action becomes operational reality.
 
 It evaluates proposed actions before execution and determines:
 
