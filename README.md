@@ -311,27 +311,6 @@ Interpretation:
 
 ---
 
-## Architecture
-
-```text
-Agent / Workflow
-        ↓
-Operational Evaluation
-        ↓
-ALLOW | WARN | BLOCK
-        ↓
-Authority Evaluation
-        ↓
-AUTONOMOUS | SUPERVISED | BLOCKED
-        ↓
-Evaluation Logging
-        ↓
-Replay Verification
-        ↓
-Execution Outcome
-```
-
----
 
 ## Local Setup
 
