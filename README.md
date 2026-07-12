@@ -10,13 +10,43 @@ In plain language:
 
 It evaluates a proposed action against current conditions, applicable policy, and delegated authority before that action becomes operational reality.
 
-It evaluates proposed actions before execution and determines:
+---
+## Why Orientation?
+
+Organizations already measure security, compliance, maturity, readiness, and capability.
+
+These measures remain essential, but they largely assume that the organization is presently oriented for consequential execution.
+
+Orientation is another measurable property.
+
+It asks whether the organization's current state, delegated authority, operating context, and intended purpose remain sufficiently aligned for an important action to become reality.
+
+Orientation Gate™ assesses that condition before consequential execution.
+
+---
+## Orientation Principle
+
+Traditional governance asks:
+
+> Can this action be performed?
+
+Orientation asks:
+
+> Does the resulting state remain admissible once the action enters the field of all other actions already in motion?
+
+Orientation Gate exists to answer that question before execution occurs.
+
+---
+
+## How Orientation Gate Works
+
+Before execution, Orientation Gate™ determines:
 
 1. Whether the action is operationally admissible under current conditions.
 2. Whether the requesting actor has enough authority to execute it.
 3. Whether the evaluation can be logged and replayed for audit verification.
 
-Orientation Gate sits between orchestration and execution.
+Orientation Gate™ sits between orchestration and execution.
 
 ```text
 Agent / Workflow
@@ -28,9 +58,8 @@ Execution Layer
 
 The objective is simple:
 
-> Prevent inadmissible execution before consequence occurs.
+> Prevent inadmissible execution before consequential actions become reality.
 
----
 
 ## Current Capabilities
 
@@ -302,17 +331,7 @@ Future work may add:
 
 ---
 
-## Orientation Principle
 
-Traditional governance asks:
-
-> Can this action be performed?
-
-Orientation asks:
-
-> Does the resulting state remain admissible once the action enters the field of all other actions already in motion?
-
-Orientation Gate exists to answer that question before execution occurs.
 
 ---
 
