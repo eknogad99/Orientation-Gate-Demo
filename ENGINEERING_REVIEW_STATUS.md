@@ -26,7 +26,7 @@ This register records implementation activity against the governing Engineering 
 | 004 — Proof Surfaces | Prove that only `EXECUTE` crosses the execution boundary. | Governed mock executor, evidence-before-execution invariant, acceptance matrix, active UI invocation indicator, seven automated boundary/HTTP tests, and hosted verification. | Real non-bypassable integration remains planned production capability and is excluded from Version 1.0 claims. | **PASS** |
 | 005 — Documentation | Align documentation with implemented behavior, legal posture, and public-claim limits. | Proprietary license; reference-implementation role; current capability classification; API, architecture, security, contribution, change, and Review 004 records. | None for Version 1.0 repository documentation. | **PASS** |
 | 006 — Verification | Replace simulated checks with reproducible clean-checkout evidence. | Published clean-checkout candidate; hosted Node 24 workflow; backend typecheck; seven boundary/HTTP tests; replay contract; frontend production build; zero-vulnerability audits. | None for Version 1.0 reference-implementation verification. | **PASS** |
-| 007 — Public Release Readiness | Establish fail-closed defaults and complete repository release governance. | Fail-closed controls; accepted non-production boundaries; proprietary reuse terms; claim-to-evidence matrix; release, merge, tag, and rollback controls. | Final candidate cleanliness and hosted verification after Review 007 corrections. | **HOLD** |
+| 007 — Public Release Readiness | Establish fail-closed defaults and complete repository release governance. | Exact-candidate reconciliation; fail-closed controls; bounded public claims; accepted non-production limitations; proprietary reuse terms; clean hosted verification; release, merge, tag, and rollback controls. | None for release of the Version 1.0 reference implementation. | **PASS** |
 
 ## Current capability determination
 
@@ -45,7 +45,7 @@ This register records implementation activity against the governing Engineering 
 | Backend dependency audit | PASS — 0 vulnerabilities |
 | Frontend production build | PASS — Vite 8.1.5 |
 | Frontend dependency audit | PASS — 0 vulnerabilities |
-| Hosted GitHub workflow | PASS — run `30040065792` against candidate `34522d7`; verified merge tree identical to candidate tree `4dd38675` |
+| Hosted GitHub workflow | PASS — Review 006 runs `30040065792` and `30040205889`; Review 007 run `30041035111` |
 
 ## Engineering log
 
@@ -69,12 +69,30 @@ The hosted workflow checked out pull-request merge commit `d08ab4b21c9b6eecedff9
 
 **Review 006 status:** **PASS.** The objective is satisfied with published, clean-checkout, commit-bound, hosted evidence. This determination does not authorize merge or release.
 
+### 23 July 2026 — Review 007 public release readiness
+
+**Reviewed candidate:** `d272ca7a8f0d14cc191f2003ff89f315598cfe74`
+
+**Candidate tree:** `0be78aa09d23bb027989788937b3625bad07785d`
+
+**Draft PR:** #10 — Review 006 — Reproducible Verification Candidate
+
+**Hosted workflow:** `30041035111` — PASS
+
+Review 007 reconciled the exact candidate and branch identity, Architecture and Proof Surface limits, public claims, capability classifications, security and evidence-retention limits, version alignment, repository cleanliness, hosted checks, and release controls.
+
+**Review 007 status:** **PASS.**
+
+**MERGE AUTHORIZED:** PR #10 may be marked ready and merged only after the hosted workflow for this status-record commit passes and the pull-request head remains unchanged.
+
+**VERSION 1.0 DESIGNATION AUTHORIZED:** designation and tag creation must follow the controlled sequence in `docs/release-controls.md`: merge the approved PR, pass hosted verification on the exact `main` merge commit, then create immutable annotated tag `v1.0.0`. No production capability is authorized or implied.
+
 ## Controlled release sequence
 
 The Review 005 publication and Review 006 hosted-verification sequence is complete. The remaining merge, post-merge verification, tagging, rollback, and release steps are governed by [Version 1.0 Release Controls](docs/release-controls.md).
 
-No merge, tag, or Version 1.0 designation is authorized while Review 007 remains `HOLD`.
+No tag or public Version 1.0 release record is authorized before the approved merge and post-merge hosted verification.
 
 ## Release Candidate determination
 
-**HOLD.** Reviews 005–006 now pass. A Version 1.0 Release Candidate determination is not authorized until Review 007 reconciles the exact candidate, remaining architecture and proof-surface limits, public claims, and release controls.
+**PASS — CONTROLLED RELEASE AUTHORIZED.** Reviews 001–007 pass for the proprietary Version 1.0 reference implementation. PR #10 is authorized for controlled merge after its final hosted status-record check passes. Version 1.0 tagging and public release remain conditional on successful post-merge verification of the exact `main` commit. The repository does not claim production capability.

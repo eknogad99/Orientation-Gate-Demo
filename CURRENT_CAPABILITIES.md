@@ -50,6 +50,6 @@ The repository is a hardened reference demonstrator. Production capability requi
 
 ## Current release determination
 
-**Release designation: HOLD pending completion of Review 007.**
+**Review 007: PASS — controlled release authorized.**
 
-Review 006 hosted verification passes. The remaining release-decision item is Review 007 reconciliation of public claims, accepted non-production limitations, repository cleanliness, and release controls against the exact candidate commit.
+Merge, tagging, and public Version 1.0 designation remain governed by `docs/release-controls.md`. No production capability is claimed or authorized.
