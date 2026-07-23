@@ -1,0 +1,52 @@
+name: Verification failure
+description: Report a reproducible clean-clone, build, test, API, or replay failure.
+title: "[Verification] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for reproducible technical findings. Report suspected vulnerabilities privately through the repository Security policy.
+  - type: input
+    id: commit
+    attributes:
+      label: Commit or tag examined
+      description: Provide the full commit SHA or release tag.
+      placeholder: v1.0.0 or full commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include operating system, Node.js version, npm version, and relevant configuration.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide commands and inputs sufficient to reproduce the finding from a clean checkout.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: I reproduced this from a clean checkout of the identified commit or tag.
+          required: true
+        - label: This report contains no secrets, personal data, regulated records, or suspected vulnerability details.
+          required: true
