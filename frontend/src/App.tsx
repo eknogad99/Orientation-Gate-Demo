@@ -19,6 +19,7 @@ type DecisionResponse = {
     previousState?: SystemModelState;
     resultingState?: SystemModelState;
     stateAdmissibility?: StateAdmissibility;
+    executorInvoked?: boolean;
     displacement: {
         temporal: string;
         system: string;
@@ -245,7 +246,7 @@ function resolveExecutionOutcome(decision?: string, authorityMode?: string): Exe
 export default function App() {
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [decision, setDecision] = useState<DecisionResponse | null>(null);
-    const [systemState, setSystemState] = useState("stable");
+    const [operatingContext, setOperatingContext] = useState("stable");
     const [authorityScenario, setAuthorityScenario] = useState<AuthorityScenario>("none");
     const [currentState, setCurrentState] = useState<SystemModelState>(DEFAULT_STATE);
     const [scenarioTrace, setScenarioTrace] = useState<DecisionResponse[]>([]);
@@ -272,20 +273,27 @@ export default function App() {
     ) => {
         const authorityFields = getAuthorityFields(scenarioOverride);
 
-        const response = await fetch("http://localhost:3001/evaluate", {
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+        const response = await fetch(`${apiBaseUrl}/execute-demo`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
                 action,
-                systemState,
+                operatingContext,
                 previousState: stateForEvaluation,
                 ...authorityFields,
             }),
         });
-
-        return response.json() as Promise<DecisionResponse>;
+        const data = await response.json();
+        if (!response.ok || !data.evaluation) {
+            throw new Error(data.error ?? "Orientation Gate evaluation failed closed.");
+        }
+        return {
+            ...data.evaluation,
+            executorInvoked: data.executorInvoked === true,
+        } as DecisionResponse;
     };
 
     const handleAction = async (action: string) => {
@@ -297,7 +305,7 @@ export default function App() {
             setDecision(data);
             setScenarioTrace([]);
 
-            if (data.resultingState) {
+            if (data.executorInvoked && data.resultingState) {
                 setCurrentState(data.resultingState);
             }
 
@@ -338,7 +346,9 @@ export default function App() {
             for (const action of actions) {
                 const result = await evaluateAction(action, state, "none");
                 results.push(result);
-                state = result.resultingState ?? state;
+                if (result.executorInvoked) {
+                    state = result.resultingState ?? state;
+                }
             }
 
             setCurrentState(state);
@@ -381,7 +391,8 @@ export default function App() {
             setIsReplaying(true);
             setReplayResult(null);
 
-            const response = await fetch(`http://localhost:3001/replay/${encodeURIComponent(idToReplay)}`, {
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+            const response = await fetch(`${apiBaseUrl}/replay/${encodeURIComponent(idToReplay)}`, {
                 method: "POST",
             });
 
@@ -407,11 +418,11 @@ export default function App() {
             }}
         >
             <h1>Orientation Gate Demo</h1>
-            <p>Pre-Execution Decision Layer</p>
+            <p>Execution-Boundary Proof Surface</p>
 
             <div style={{ marginBottom: "1rem" }}>
-                <label>System State: </label>
-                <select value={systemState} onChange={(e) => setSystemState(e.target.value)}>
+                <label>Operating Context: </label>
+                <select value={operatingContext} onChange={(e) => setOperatingContext(e.target.value)}>
                     <option value="stable">Stable</option>
                     <option value="drift">Under Drift</option>
                 </select>
@@ -441,10 +452,10 @@ export default function App() {
                 <p>Demonstrates that ALLOW + ALLOW + ALLOW does not necessarily imply an admissible resulting state.</p>
                 <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
                     <button onClick={() => runScenario(["safe_read", "safe_read", "config_change"])}>
-                        Scenario A: 3 Allowed Actions → State Admissible
+                        Scenario A: 3 Safe Reads → 3 Executions
                     </button>
                     <button onClick={() => runScenario(["config_change", "config_change", "config_change"])}>
-                        Scenario B: 3 Allowed Actions → State Inadmissible
+                        Scenario B: Repeated Config Change → Stops at Risk Boundary
                     </button>
                 </div>
                 <StateDisplay label="Current State" state={currentState} />
@@ -487,6 +498,10 @@ export default function App() {
                     </div>
 
                     <h2>Pre-Execution Decision: {decision.decision}</h2>
+                    <p>
+                        <strong>Mock Executor:</strong>{" "}
+                        {decision.executorInvoked ? "INVOKED" : "NOT INVOKED"}
+                    </p>
                     {decision.id && (
                         <div
                             style={{

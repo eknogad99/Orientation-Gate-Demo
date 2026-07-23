@@ -1,49 +1,84 @@
 {
-  "rules": [
+  "version": "1.0.0-rc.1",
+  "decisionRules": [
     {
-      "name": "Production Destructive Operation",
-      "keywords": ["delete production", "drop production", "truncate production", "production database"],
-      "priority_strict": 100,
-      "priority_adaptive": 95,
-      "level": "CRITICAL",
-      "action": "BLOCK",
-      "explanation": "Destructive operations on production systems are not allowed."
+      "id": "OG-RULE-001",
+      "action": "safe_read",
+      "operatingContext": "stable",
+      "label": "Safe Read Operation",
+      "decision": "ALLOW",
+      "reason": "No critical displacement detected",
+      "coherenceCheck": "PASSED",
+      "displacement": { "temporal": "LOW", "system": "LOW", "energy": "LOW" },
+      "confidence": 0.98
     },
     {
-      "name": "Large-Scale Irreversible Cleanup",
-      "keywords": ["delete", "cleanup", "history", "batch", "500gb"],
-      "priority_strict": 85,
-      "priority_adaptive": 75,
-      "level": "WARN",
-      "action": "WARN",
-      "explanation": "Large-scale irreversible deletions require review."
+      "id": "OG-RULE-002",
+      "action": "safe_read",
+      "operatingContext": "drift",
+      "label": "Safe Read Operation",
+      "decision": "ALLOW",
+      "reason": "Read-only action remains admissible under drift",
+      "coherenceCheck": "DEGRADED",
+      "displacement": { "temporal": "LOW", "system": "MEDIUM", "energy": "LOW" },
+      "confidence": 0.9
     },
     {
-      "name": "Policy Alignment",
-      "keywords": ["policy", "aligned", "approved"],
-      "priority_strict": 90,
-      "priority_adaptive": 75,
-      "level": "INFO",
-      "action": "ALLOW",
-      "explanation": "Input matches policy alignment terms."
+      "id": "OG-RULE-003",
+      "action": "config_change",
+      "operatingContext": "stable",
+      "label": "Config Change",
+      "decision": "ALLOW",
+      "reason": "Operating context is stable",
+      "coherenceCheck": "PASSED",
+      "displacement": { "temporal": "LOW", "system": "LOW", "energy": "LOW" },
+      "confidence": 0.9
     },
     {
-      "name": "Potential Deviation",
-      "keywords": ["deviation", "misaligned", "override"],
-      "priority_strict": 85,
-      "priority_adaptive": 70,
-      "level": "WARN",
-      "action": "BLOCK",
-      "explanation": "Input indicates potential deviation."
+      "id": "OG-RULE-004",
+      "action": "config_change",
+      "operatingContext": "drift",
+      "label": "Config Change with Drift Risk",
+      "decision": "WARN",
+      "reason": "Policy alignment uncertainty detected",
+      "coherenceCheck": "DEGRADED",
+      "displacement": { "temporal": "MEDIUM", "system": "HIGH", "energy": "LOW" },
+      "confidence": 0.72
     },
     {
-      "name": "Delay or Timing Change",
-      "keywords": ["delay", "postpone", "reschedule"],
-      "priority_strict": 45,
-      "priority_adaptive": 35,
-      "level": "WARN",
-      "action": "WARN",
-      "explanation": "Schedule or timing changes may require review."
+      "id": "OG-RULE-005",
+      "action": "deploy_update",
+      "operatingContext": "stable",
+      "label": "Deploy Code Update",
+      "decision": "ALLOW",
+      "reason": "Operating context is stable",
+      "coherenceCheck": "PASSED",
+      "displacement": { "temporal": "LOW", "system": "LOW", "energy": "LOW" },
+      "confidence": 0.95
+    },
+    {
+      "id": "OG-RULE-006",
+      "action": "deploy_update",
+      "operatingContext": "drift",
+      "label": "Deploy Code Update",
+      "decision": "BLOCK",
+      "reason": "Temporal and system drift detected",
+      "coherenceCheck": "FAILED",
+      "displacement": { "temporal": "HIGH", "system": "HIGH", "energy": "MEDIUM" },
+      "confidence": 0.91
     }
-  ]
+  ],
+  "stateTransitions": {
+    "safe_read": { "stability": 0, "configurationIntegrity": 0, "resourcePressure": 0 },
+    "config_change": { "stability": 0, "configurationIntegrity": -0.25, "resourcePressure": 0.05 },
+    "deploy_update": { "stability": -0.1, "configurationIntegrity": 0, "resourcePressure": 0.3 }
+  },
+  "stateThresholds": {
+    "inadmissible": { "minStability": 0.5, "minConfigurationIntegrity": 0.5, "maxResourcePressure": 0.8 },
+    "atRisk": { "minStability": 0.7, "minConfigurationIntegrity": 0.7, "maxResourcePressure": 0.6 }
+  },
+  "authority": {
+    "roleRank": { "viewer": 1, "operator": 2, "maintainer": 3, "admin": 4, "owner": 5 },
+    "requestRank": { "read": 1, "execute": 2, "configure": 3, "deploy": 4, "admin": 5, "owner": 5 }
+  }
 }

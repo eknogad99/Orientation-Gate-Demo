@@ -1,0 +1,59 @@
+name: Orientation Gate Review Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Verify backend types
+        working-directory: backend
+        run: npm run typecheck
+
+      - name: Verify execution boundary
+        working-directory: backend
+        run: npm test
+
+      - name: Verify evaluate-to-replay contract
+        working-directory: backend
+        run: npm run replay-contract
+
+      - name: Audit backend dependencies
+        working-directory: backend
+        run: npm audit --audit-level=low
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build active proof surface
+        working-directory: frontend
+        run: npm run build
+
+      - name: Audit frontend dependencies
+        working-directory: frontend
+        run: npm audit --audit-level=low
