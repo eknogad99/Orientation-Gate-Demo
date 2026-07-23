@@ -1,0 +1,55 @@
+name: Claim–evidence discrepancy
+description: Identify a public repository claim that may exceed or conflict with demonstrated evidence.
+title: "[Claim–Evidence] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Orientation Gate™ keeps demonstrated, implemented, planned, and production capability distinct. Use this form when a public claim appears inconsistent with repository evidence.
+  - type: input
+    id: location
+    attributes:
+      label: Claim location
+      description: Link to the README section, document, release text, or other public claim.
+    validations:
+      required: true
+  - type: textarea
+    id: claim
+    attributes:
+      label: Claim examined
+      description: Quote only the minimum text needed to identify the claim.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Repository evidence examined
+      description: Identify relevant files, tests, workflow runs, commits, or observed behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: discrepancy
+    attributes:
+      label: Apparent discrepancy
+      description: Explain why the claim may exceed, omit, or conflict with the demonstrated evidence.
+    validations:
+      required: true
+  - type: dropdown
+    id: classification
+    attributes:
+      label: Suggested capability classification
+      options:
+        - Demonstrated
+        - Implemented
+        - Planned
+        - Production
+        - Unclear
+    validations:
+      required: true
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security routing
+      options:
+        - label: This report does not disclose a suspected vulnerability; security findings will be reported privately.
+          required: true
