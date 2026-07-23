@@ -1,0 +1,45 @@
+name: Architecture challenge
+description: Examine an architectural boundary, invariant, failure mode, or governance assumption.
+title: "[Architecture] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for bounded architectural and governance examination, not feature requests or vulnerability disclosure. Version 1.0 is a reference demonstrator; production capability is not claimed.
+  - type: input
+    id: component
+    attributes:
+      label: Component or boundary
+      description: Identify the relevant component, endpoint, policy rule, evidence path, or execution boundary.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current documented behavior
+      description: Identify the documentation, code, test, or workflow evidence examined.
+    validations:
+      required: true
+  - type: textarea
+    id: challenge
+    attributes:
+      label: Architectural challenge
+      description: State the assumption, invariant, ambiguity, or failure mode being challenged.
+    validations:
+      required: true
+  - type: textarea
+    id: consequence
+    attributes:
+      label: Potential execution consequence
+      description: Explain how the challenge could affect ALLOW, WARN, BLOCK, authority, state admissibility, replay, or the mock execution boundary.
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope acknowledgement
+      options:
+        - label: I have distinguished the Version 1.0 demonstrator boundary from unclaimed production capability.
+          required: true
+        - label: This report contains no suspected vulnerability details.
+          required: true
