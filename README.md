@@ -8,22 +8,22 @@ In plain language:
 
 > Orientation Gate™ helps organizations decide whether an important action should happen before it happens.
 
-It evaluates a proposed action against current conditions, applicable policy, and delegated authority before that action becomes operational reality.
+## Version 1.0 repository scope
 
----
-## Why Orientation?
+This repository is a **reference demonstrator** of the decision and evidence loop required for execution governance. It proves that operational decision, delegated authority, resulting-state admissibility, and final execution outcome can be evaluated separately and composed before a mock executor is invoked.
 
-Organizations already measure security, compliance, maturity, readiness, and capability.
+It is not yet a production, non-bypassable gateway. It does not intercept arbitrary tools, APIs, databases, model calls, or operating-system operations. Public claims about this repository must remain within that demonstrated boundary.
 
-These measures remain essential, but they largely assume that the organization is presently oriented for consequential execution.
+## Why orientation?
 
-Orientation is another measurable property.
+Organizations already measure security, compliance, maturity, readiness, and capability. Those measures remain essential, but they usually assume that the organization is presently oriented for consequential execution.
 
-It asks whether the organization's current state, delegated authority, operating context, and intended purpose remain sufficiently aligned for an important action to become reality.
+Orientation asks:
 
-Orientation Gate™ assesses that condition before consequential execution.
-| Organizations Measure | Question Answered |
-|---|---|
+> Given the present operating context, delegated authority, intended action, and resulting state, should this execution presently proceed?
+
+| Organizations measure | Question answered |
+| --- | --- |
 | Security | Is it protected? |
 | Compliance | Is it permitted? |
 | Maturity | How developed is it? |
@@ -31,331 +31,154 @@ Orientation Gate™ assesses that condition before consequential execution.
 | Capability | Can it perform? |
 | **Orientation** | **Should it presently proceed to consequential execution?** |
 
----
-## Orientation Principle
-
-Traditional governance asks:
-
-> Can this action be performed?
-
-Orientation asks:
-
-> Does the resulting state remain admissible once the action enters the field of all other actions already in motion?
-
-Orientation Gate exists to answer that question before execution occurs.
-
----
-
-## How Orientation Gate Works
-
-Before execution, Orientation Gate™ determines:
-
-1. Whether the action is operationally admissible under current conditions.
-2. Whether the requesting actor has enough authority to execute it.
-3. Whether the evaluation can be logged and replayed for audit verification.
-
-Orientation Gate™ sits between orchestration and execution.
+## Implemented execution-governance path
 
 ```text
-Agent / Workflow
-        ↓
- ORIENTATION GATE
-        ↓
-Execution Layer
-```
-
-The objective is simple:
-
-> Prevent inadmissible execution before consequential actions become reality.
-
----
-## Architecture
-
-Orientation Gate™ sits between a proposed action and its execution.
-
-The following execution-governance pipeline illustrates how every proposed action is evaluated before execution.
-
-```text
-Agent / Workflow
-        ↓
-Operational Evaluation
-        ↓
+Validated request
+      ↓
+Versioned operational policy
+      ↓
 ALLOW | WARN | BLOCK
-        ↓
-Authority Evaluation
-        ↓
+      ↓
 AUTONOMOUS | SUPERVISED | BLOCKED
-        ↓
-Evaluation Logging
-        ↓
-Replay Verification
-        ↓
-Execution Consequence
+      ↓
+Resulting-state admissibility
+      ↓
+EXECUTE | ESCALATE | DENY
+      ↓
+Mock execution boundary + versioned evidence + replay
 ```
 
-Each stage contributes distinct evidence. Together, they determine whether a proposed action should proceed to execution.
+Only `executionOutcome: EXECUTE` may invoke the mock executor. `ESCALATE`, `DENY`, invalid input, unmatched policy, and internal evaluation failure remain non-executable.
 
-Operational evaluation determines whether an action is admissible under current system conditions.
+## Demonstrated proof surfaces
 
-Authority evaluation determines whether the requesting actor may exercise the required level of authority.
+- `POST /evaluate` returns a versioned evaluation and records local evidence.
+- `POST /execute-demo` proves whether the mock executor was invoked.
+- `POST /replay/:id` compares decision, authority, execution outcome, and state transition using the original policy and engine versions.
+- The active React interface displays operating context, authority, execution outcome, mock-executor invocation, state transition, and replay results.
+- Automated tests verify the execution-boundary acceptance matrix and fail-closed request handling.
 
-Evaluation logging records the decision and its inputs.
+See [Review 004 — Execution-Boundary Proof](REVIEW_004_EXECUTION_BOUNDARY.md) for the governing acceptance specification.
 
-Replay verification tests whether the recorded decision can be reproduced.
+## Decision composition
 
-Together, these functions form the Version 1.0 execution-governance architecture.
+| Condition | Final outcome | Mock executor |
+| --- | --- | --- |
+| `ALLOW` + `AUTONOMOUS` + admissible resulting state | `EXECUTE` | Invoked |
+| `WARN`, `SUPERVISED`, or at-risk resulting state | `ESCALATE` | Not invoked |
+| `BLOCK`, `BLOCKED`, or inadmissible resulting state | `DENY` | Not invoked |
+| Invalid request or unmatched policy | `DENY` | Not invoked |
 
+## Request contract
 
-## Current Capabilities
-
-### 1. Operational Decisions
-
-The `/evaluate` endpoint determines the operational decision for a proposed action.
-
-Possible values:
-
-- `ALLOW`
-- `WARN`
-- `BLOCK`
-
-Current demonstrated behavior:
-
-- Stable safe read → `ALLOW`
-- Stable config change → `ALLOW`
-- Config change during drift → `WARN`
-- Stable deploy update → `ALLOW`
-- Deploy update during drift → `BLOCK`
-
-This layer answers:
-
-> Is this action safe under current system conditions?
-
----
-
-### 2. Authority Escalation
-
-The `/evaluate` endpoint also returns an independent authority result.
-
-Optional request fields:
-
-```json
-{
-  "actorRole": "operator",
-  "requestedAuthority": "deploy",
-  "requiresApproval": false
-}
-```
-
-Returned fields:
-
-```json
-{
-  "authorityMode": "BLOCKED",
-  "authorityReason": "Requested authority 'deploy' exceeds actor role 'operator'."
-}
-```
-
-Possible `authorityMode` values:
-
-- `AUTONOMOUS`: the actor has enough authority to proceed without extra approval.
-- `SUPERVISED`: the action requires review, approval, or human oversight.
-- `BLOCKED`: the requested authority exceeds the actor's role.
-
-This layer answers:
-
-> Is this actor allowed to perform the requested level of authority?
-
-Important distinction:
-
-> An action may be operationally allowed while still being blocked by authority constraints.
-
-Example:
-
-```json
-{
-  "decision": "ALLOW",
-  "authorityMode": "BLOCKED"
-}
-```
-
----
-
-### 3. Evaluation Logging
-
-Every `/evaluate` call now creates a durable audit entry in:
-
-```text
-backend/logs.json
-```
-
-Each logged evaluation includes:
-
-- `id`
-- timestamp
-- original request inputs:
-  - `action`
-  - `systemState`
-  - `actorRole`
-  - `requestedAuthority`
-  - `requiresApproval`
-- returned outputs:
-  - `decision`
-  - `reason`
-  - `authorityMode`
-  - `authorityReason`
-  - `confidence`
-
-The current backend also exposes:
-
-```text
-GET /logs
-```
-
-This returns the current audit history from `backend/logs.json`.
-
----
-
-### 4. Replay Verification
-
-Logged evaluations can be replayed by evaluation id.
-
-Endpoint:
-
-```text
-POST /replay/:id
-```
-
-Replay uses the original logged request inputs and re-runs the current evaluation logic. It does not create a new log entry.
-
-Replay compares:
-
-- original `decision`
-- replayed `decision`
-- original `authorityMode`
-- replayed `authorityMode`
-
-Replay returns:
-
-```json
-{
-  "id": "example-id",
-  "original": {
-    "decision": "ALLOW",
-    "authorityMode": "BLOCKED"
-  },
-  "replayed": {
-    "decision": "ALLOW",
-    "authorityMode": "BLOCKED"
-  },
-  "decisionMatches": true,
-  "authorityMatches": true
-}
-```
-
-If the log entry is missing:
-
-```json
-{
-  "error": "Evaluation log not found"
-}
-```
-
-If an older log entry does not contain the replay inputs:
-
-```json
-{
-  "error": "Evaluation log does not contain replay inputs"
-}
-```
-
----
-
-## Example Evaluation Request
+`POST /evaluate` and `POST /execute-demo` require:
 
 ```json
 {
   "action": "deploy_update",
-  "systemState": "stable",
+  "operatingContext": "drift",
   "actorRole": "operator",
-  "requestedAuthority": "deploy"
+  "requestedAuthority": "deploy",
+  "requiresApproval": false,
+  "previousState": {
+    "stability": 1,
+    "configurationIntegrity": 1,
+    "resourcePressure": 0
+  }
 }
 ```
 
-Example response:
+Missing, unknown, inconsistent, or out-of-range values return HTTP `400`, `OG-INVALID-REQUEST`, and `executionOutcome: DENY`.
 
-```json
-{
-  "id": "1781980000000-ab12cd34",
-  "actionAttempted": "Deploy Code Update",
-  "coherenceCheck": "PASSED",
-  "decision": "ALLOW",
-  "reason": "System stable",
-  "displacement": {
-    "temporal": "LOW",
-    "system": "LOW",
-    "energy": "LOW"
-  },
-  "confidence": 0.95,
-  "authorityMode": "BLOCKED",
-  "authorityReason": "Requested authority 'deploy' exceeds actor role 'operator'.",
-  "timestamp": "2026-06-20T00:00:00.000Z"
-}
-```
+See [API Reference](docs/api.md) for complete endpoint and error behavior.
 
-Interpretation:
+## Repository architecture
 
-- The action is operationally acceptable.
-- The actor lacks deploy authority.
-- The authority layer blocks execution.
-- The evaluation is logged and can be replayed by id.
+- `backend/engine.ts` — validation, operational evaluation, authority, state transition, outcome composition, and governed execution.
+- `backend/policy.json` — active Version 1.0 reference policy.
+- `backend/policy.ts` — policy loading contract.
+- `backend/evidence-store.ts` — local atomic JSON evidence adapter.
+- `backend/server.ts` — HTTP boundary, restricted CORS, evidence endpoints, and fail-closed error handling.
+- `backend/tests/` — execution-boundary and invalid-input verification.
+- `frontend/src/main.tsx` and `frontend/src/App.tsx` — active proof surface.
 
----
+The local JSON evidence adapter is demonstrator infrastructure, not production persistence. See [Architecture and Trust Boundaries](docs/architecture.md).
 
+## Local setup
 
-## Local Setup
+Requirements:
+
+- Node.js 24
+- npm 11 or compatible
 
 Backend:
 
 ```bash
 cd backend
-npm install
+npm ci
 npm run dev
-```
-
-Runs at:
-
-```text
-http://localhost:3001
 ```
 
 Frontend:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-Runs at the Vite local URL, usually:
+The backend defaults to `http://localhost:3001`. The frontend defaults to that URL and may be configured with `VITE_API_BASE_URL`.
 
-```text
-http://localhost:5173
+## Verification
+
+```bash
+cd backend
+npm ci
+npm run typecheck
+npm test
+npm run replay-contract
+npm audit --audit-level=low
+
+cd ../frontend
+npm ci
+npm run build
+npm audit --audit-level=low
 ```
 
----
+The GitHub verification workflow runs the same checks from a clean checkout. It performs no deployment and makes no call to an external Orientation Gate service.
 
-## Roadmap
+## Security and operating defaults
 
-Future work may add:
+- Unknown or invalid inputs fail closed.
+- Policy and engine versions are attached to evidence.
+- Replay refuses a policy or engine version mismatch.
+- Audit-log access is disabled unless `ENABLE_LOG_API=true`.
+- Browser origins default to the local Vite development URLs and may be set through `ALLOWED_ORIGINS`.
+- Runtime evidence is excluded from version control.
+- Evidence persistence must succeed before the mock executor is invoked.
 
-- explicit policy versioning
-- externalized operational policy rules
-- richer audit log browsing in the UI
-- replay history reporting
+These controls harden the reference demonstrator; they do not make it a production security boundary. See [SECURITY.md](SECURITY.md).
 
----
+## Capability classification
 
+[CURRENT_CAPABILITIES.md](CURRENT_CAPABILITIES.md) distinguishes demonstrated, implemented, planned, and production capability. That distinction governs public claims.
 
+The claim-to-evidence correspondence is recorded in [Public Claims and Evidence](docs/public-claims.md). Merge, version, tagging, rollback, and release controls are defined in [Release Controls](docs/release-controls.md).
+
+## Intended role and license
+
+This repository is a **proprietary reference implementation** of the Orientation Gate™ Version 1.0 execution-governance architecture. Its purpose is to make the governing concepts, decision composition, proof surfaces, and verification evidence inspectable.
+
+It is not a production system, a hosted service, or a ready-to-deploy security boundary. Production use would require a separately authorized implementation with non-bypassable integration, identity controls, durable evidence, operational monitoring, deployment-specific threat modeling, and independent verification.
+
+The source is publicly visible for evaluation, research, and discussion, but it is **not open source**. No permission to copy, modify, distribute, commercialize, or create derivative works is granted without prior written authorization. See [LICENSE](LICENSE).
+
+## Engineering review discipline
+
+Every repository change must trace to a numbered item in the Orientation Gate™ Version 1.0 Engineering Review or an accepted acceptance specification. Contribution requirements are defined in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Current review outcomes and remaining release gates are maintained in the [Engineering Review Status Register](ENGINEERING_REVIEW_STATUS.md).
 
 ---
 

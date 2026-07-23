@@ -36,15 +36,12 @@ const BASE_URL = `http://localhost:${VERIFY_PORT}`;
 
 function startServer(): Promise<ChildProcessWithoutNullStreams> {
   return new Promise((resolve, reject) => {
-    const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-
-    const server = spawn(npmCommand, ["run", "dev"], {
+    const server = spawn(process.execPath, ["server.ts"], {
       cwd: process.cwd(),
       env: {
         ...process.env,
         PORT: String(VERIFY_PORT),
       },
-      shell: process.platform === "win32",
     });
 
     let resolved = false;
@@ -142,7 +139,7 @@ function assertReplayContract(replay: ReplayResponse) {
 async function verifyContract() {
   const evaluation = await postJson<EvaluationResponse>("/evaluate", {
     action: "deploy_update",
-    systemState: "drift",
+    operatingContext: "drift",
     actorRole: "operator",
     requestedAuthority: "deploy",
     requiresApproval: false,
