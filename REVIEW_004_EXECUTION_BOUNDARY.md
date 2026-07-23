@@ -51,4 +51,4 @@ The proof is part of a proprietary reference implementation. It is not evidence 
 
 ## Review status
 
-**PARTIAL** until hosted CI passes on the candidate commit and a real adapter proof is either implemented or explicitly deferred from Version 1.0 production claims.
+**PASS for the Version 1.0 reference implementation.** Hosted CI proves the mock execution boundary on the published candidate. A real non-bypassable adapter remains planned production capability and is explicitly excluded from Version 1.0 repository claims.

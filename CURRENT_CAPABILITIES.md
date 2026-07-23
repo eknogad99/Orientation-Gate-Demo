@@ -50,6 +50,6 @@ The repository is a hardened reference demonstrator. Production capability requi
 
 ## Current release determination
 
-**Release Candidate status: HOLD pending completion of Review 007.**
+**Release designation: HOLD pending completion of Review 007.**
 
-Remaining release-decision items include successful hosted CI evidence on the candidate commit and final Engineering Review status reconciliation.
+Review 006 hosted verification passes. The remaining release-decision item is Review 007 reconciliation of public claims, accepted non-production limitations, repository cleanliness, and release controls against the exact candidate commit.

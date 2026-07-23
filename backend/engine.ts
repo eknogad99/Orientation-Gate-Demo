@@ -1,6 +1,6 @@
 import type { OrientationPolicy } from "./policy.ts";
 
-export const ENGINE_VERSION = "1.0.0-rc.1";
+export const ENGINE_VERSION = "1.0.0";
 
 export type Action = "safe_read" | "config_change" | "deploy_update";
 export type OperatingContext = "stable" | "drift";

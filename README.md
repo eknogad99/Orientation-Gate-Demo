@@ -96,7 +96,7 @@ See [API Reference](docs/api.md) for complete endpoint and error behavior.
 ## Repository architecture
 
 - `backend/engine.ts` — validation, operational evaluation, authority, state transition, outcome composition, and governed execution.
-- `backend/policy.json` — active Version 1.0 release-candidate policy.
+- `backend/policy.json` — active Version 1.0 reference policy.
 - `backend/policy.ts` — policy loading contract.
 - `backend/evidence-store.ts` — local atomic JSON evidence adapter.
 - `backend/server.ts` — HTTP boundary, restricted CORS, evidence endpoints, and fail-closed error handling.
@@ -163,6 +163,8 @@ These controls harden the reference demonstrator; they do not make it a producti
 ## Capability classification
 
 [CURRENT_CAPABILITIES.md](CURRENT_CAPABILITIES.md) distinguishes demonstrated, implemented, planned, and production capability. That distinction governs public claims.
+
+The claim-to-evidence correspondence is recorded in [Public Claims and Evidence](docs/public-claims.md). Merge, version, tagging, rollback, and release controls are defined in [Release Controls](docs/release-controls.md).
 
 ## Intended role and license
 

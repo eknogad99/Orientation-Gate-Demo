@@ -21,12 +21,12 @@ This register records implementation activity against the governing Engineering 
 | Review | Engineering objective | Implementation evidence | Remaining gap | Status |
 | --- | --- | --- | --- | --- |
 | 001 — Repository Thesis | Preserve the technical and plain-language thesis while bounding it to repository evidence. | README retains both statements and adds an explicit reference-demonstrator boundary. | None for the repository thesis. | **PASS** |
-| 002 — README | Make the repository front door accurate, reproducible, and explicit about non-goals. | README now documents scope, decision composition, request contract, architecture, setup, verification, security defaults, and claim classification. | Reconcile once hosted CI evidence exists. | **PASS** |
-| 003 — Architecture | Separate policy, evaluation, evidence, HTTP, and proof-surface responsibilities; remove ambiguous defaults. | `engine.ts`, `policy.ts`, `policy.json`, `evidence-store.ts`, thin HTTP boundary, strict inputs, explicit operating context, state-aware outcomes, version-bound replay. | Local JSON evidence and in-process executor remain non-production adapters. | **HARDEN** |
-| 004 — Proof Surfaces | Prove that only `EXECUTE` crosses the execution boundary. | Governed mock executor, evidence-before-execution invariant, acceptance matrix, active UI invocation indicator, seven automated boundary/HTTP tests. | Hosted CI evidence and a real external adapter proof are not yet present. | **PARTIAL** |
+| 002 — README | Make the repository front door accurate, reproducible, and explicit about non-goals. | README documents scope, decision composition, request contract, architecture, setup, verification, security defaults, claim classification, and release controls. | None for the Version 1.0 reference implementation. | **PASS** |
+| 003 — Architecture | Separate policy, evaluation, evidence, HTTP, and proof-surface responsibilities; remove ambiguous defaults. | `engine.ts`, `policy.ts`, `policy.json`, `evidence-store.ts`, thin HTTP boundary, strict inputs, explicit operating context, state-aware outcomes, version-bound replay, and documented trust boundaries. | Production adapters remain explicitly planned and outside repository claims. | **PASS** |
+| 004 — Proof Surfaces | Prove that only `EXECUTE` crosses the execution boundary. | Governed mock executor, evidence-before-execution invariant, acceptance matrix, active UI invocation indicator, seven automated boundary/HTTP tests, and hosted verification. | Real non-bypassable integration remains planned production capability and is excluded from Version 1.0 claims. | **PASS** |
 | 005 — Documentation | Align documentation with implemented behavior, legal posture, and public-claim limits. | Proprietary license; reference-implementation role; current capability classification; API, architecture, security, contribution, change, and Review 004 records. | None for Version 1.0 repository documentation. | **PASS** |
 | 006 — Verification | Replace simulated checks with reproducible clean-checkout evidence. | Published clean-checkout candidate; hosted Node 24 workflow; backend typecheck; seven boundary/HTTP tests; replay contract; frontend production build; zero-vulnerability audits. | None for Version 1.0 reference-implementation verification. | **PASS** |
-| 007 — Public Release Readiness | Establish fail-closed defaults and complete repository release governance. | Invalid/unmatched inputs deny; evidence precedes execution; replay refuses version mismatch; logs and origins restricted; runtime/legacy artifacts removed; external ngrok workflow removed; proprietary reuse terms defined. | Commit/PR traceability, hosted CI pass, and final review reconciliation. | **HOLD** |
+| 007 — Public Release Readiness | Establish fail-closed defaults and complete repository release governance. | Fail-closed controls; accepted non-production boundaries; proprietary reuse terms; claim-to-evidence matrix; release, merge, tag, and rollback controls. | Final candidate cleanliness and hosted verification after Review 007 corrections. | **HOLD** |
 
 ## Current capability determination
 
@@ -69,20 +69,11 @@ The hosted workflow checked out pull-request merge commit `d08ab4b21c9b6eecedff9
 
 **Review 006 status:** **PASS.** The objective is satisfied with published, clean-checkout, commit-bound, hosted evidence. This determination does not authorize merge or release.
 
-## Authorized continuation sequence
+## Controlled release sequence
 
-When GitHub CLI or equivalent authenticated publication tooling is available:
+The Review 005 publication and Review 006 hosted-verification sequence is complete. The remaining merge, post-merge verification, tagging, rollback, and release steps are governed by [Version 1.0 Release Controls](docs/release-controls.md).
 
-1. Create branch `review/005-documentation-pass` from the locally verified repository state.
-2. Commit the verified Review 005 documentation and license changes together with their traceable Review 004–007 implementation evidence.
-3. Push the review branch without modifying `main`.
-4. Open a draft pull request titled **Review 005 — Documentation and License Posture**.
-5. Wait for the hosted verification workflow to complete on the candidate commit.
-6. Execute Review 006 against the hosted CI evidence.
-7. Reconcile Reviews 006–007 against the exact candidate commit.
-8. Consider merge into `main` only if hosted CI passes and the review board authorizes an updated Release Candidate determination.
-
-This sequence authorizes publication for review; it does not authorize merge or Version 1.0 Release Candidate designation.
+No merge, tag, or Version 1.0 designation is authorized while Review 007 remains `HOLD`.
 
 ## Release Candidate determination
 

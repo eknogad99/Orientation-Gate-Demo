@@ -2,7 +2,7 @@
 
 All notable repository changes will be recorded here and traced to the Orientation Gate™ Version 1.0 Engineering Review.
 
-## Unreleased — Version 1.0 Release Candidate
+## Unreleased — Review 007 Candidate
 
 ### Reviews 004, 006, and 007
 
@@ -18,3 +18,5 @@ All notable repository changes will be recorded here and traced to the Orientati
 - Removed legacy frontend scaffolding, runtime evidence, and machine-specific artifacts.
 - Aligned repository documentation with demonstrated evidence and non-production boundaries.
 - Added a proprietary all-rights-reserved license notice and aligned it with the repository's reference-implementation role.
+- Added public-claim correspondence and controlled merge, tagging, rollback, and release procedures.
+- Aligned backend, frontend, engine, and policy identifiers at Version 1.0.0 without designating a release before Review 007 authorization.

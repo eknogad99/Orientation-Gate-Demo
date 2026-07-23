@@ -41,6 +41,6 @@ Execution receipt          Version-bound replay
 - The executor is in-process and demonstrative; it is not a non-bypassable external control point.
 - Evidence is stored in a local JSON file and is not immutable, authenticated, signed, replicated, or production durable.
 - Administrative authentication, rate limiting, production telemetry, and incident recovery are not implemented.
-- Policy loading validates only the minimum release-candidate structure; a production schema and signed policy distribution mechanism are not implemented.
+- Policy loading validates only the minimum Version 1.0 reference structure; a production schema and signed policy distribution mechanism are not implemented.
 
 These limitations are deliberate and must remain visible in public claims.

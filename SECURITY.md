@@ -26,3 +26,9 @@ Include the affected commit, reproduction steps, expected versus observed behavi
 ## Demonstrator limitations
 
 The local JSON evidence adapter, local-development CORS configuration, mock executor, and optional log endpoint are not production controls. A production deployment requires its own threat model, identity boundary, durable evidence system, non-bypassable integration, operational monitoring, and incident-response process.
+
+## Evidence retention
+
+The demonstrator has no production retention schedule, automatic rotation, authenticated deletion, legal hold, encryption-at-rest control, or recovery guarantee. Local evidence persists only in the configured JSON file until an operator removes or replaces it. Do not submit production secrets, personal data, regulated records, or other sensitive information to the demonstrator.
+
+Corrupt or unreadable evidence fails closed. This behavior protects execution ordering; it does not provide durability, confidentiality, immutability, or records-management compliance.
