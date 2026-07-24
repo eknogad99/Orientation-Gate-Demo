@@ -166,6 +166,18 @@ These controls harden the reference demonstrator; they do not make it a producti
 
 The claim-to-evidence correspondence is recorded in [Public Claims and Evidence](docs/public-claims.md). Merge, version, tagging, rollback, and release controls are defined in [Release Controls](docs/release-controls.md).
 
+## Review and scrutiny
+
+Orientation Gate™ Version 1.0 is a governed demonstration release. Production capability is not claimed.
+
+Technical and governance examination is invited, particularly regarding the pre-execution boundary, deterministic decision behavior, fail-closed handling, authority escalation, replay verification, and correspondence between repository claims and demonstrated evidence.
+
+- Use [GitHub Issues](https://github.com/eknogad99/Orientation-Gate-Demo/issues/new/choose) for reproducible verification failures, claim–evidence discrepancies, and bounded architecture challenges.
+- Use the process in [SECURITY.md](SECURITY.md) for suspected vulnerabilities. Do not disclose vulnerability details in a public issue.
+- Review [CONTRIBUTING.md](CONTRIBUTING.md) before proposing code or documentation changes; external material is not incorporated without agreed contribution terms.
+
+Scrutiny does not expand the demonstrated boundary or authorize production use. Findings are evaluated against the exact commit or tag identified by the reporter.
+
 ## Intended role and license
 
 This repository is a **proprietary reference implementation** of the Orientation Gate™ Version 1.0 execution-governance architecture. Its purpose is to make the governing concepts, decision composition, proof surfaces, and verification evidence inspectable.
