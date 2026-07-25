@@ -81,18 +81,26 @@ The hosted workflow checked out pull-request merge commit `d08ab4b21c9b6eecedff9
 
 Review 007 reconciled the exact candidate and branch identity, Architecture and Proof Surface limits, public claims, capability classifications, security and evidence-retention limits, version alignment, repository cleanliness, hosted checks, and release controls.
 
-**Review 007 status:** **PASS.**
+Review 007 status: PASS.
 
-**MERGE AUTHORIZED:** PR #10 may be marked ready and merged only after the hosted workflow for this status-record commit passes and the pull-request head remains unchanged.
+MERGE AUTHORIZED: PR #10 was authorized for merge only after the hosted workflow for the status-record commit passed and the pull-request head remained unchanged.
 
-**VERSION 1.0 DESIGNATION AUTHORIZED:** designation and tag creation must follow the controlled sequence in `docs/release-controls.md`: merge the approved PR, pass hosted verification on the exact `main` merge commit, then create immutable annotated tag `v1.0.0`. No production capability is authorized or implied.
+VERSION 1.0 DESIGNATION AUTHORIZED: Version 1.0 designation and tag creation were governed by the controlled sequence in docs/release-controls.md: merge the approved PR, pass hosted verification on the exact main merge commit, and then create the immutable annotated tag v1.0.0. No production capability was authorized or implied.
 
-## Controlled release sequence
+MERGE EXECUTED: PR #10 was subsequently merged following successful hosted verification of the approved pull-request head.
 
-The Review 005 publication and Review 006 hosted-verification sequence is complete. The remaining merge, post-merge verification, tagging, rollback, and release steps are governed by [Version 1.0 Release Controls](docs/release-controls.md).
+VERSION 1.0 DESIGNATION COMPLETED: Following merge and successful hosted verification of the exact main commit, annotated tag v1.0.0 was created and the Version 1.0 release was issued.
 
-No tag or public Version 1.0 release record is authorized before the approved merge and post-merge hosted verification.
+Controlled release sequence
 
-## Release Candidate determination
+The Review 005 publication and Review 006 hosted-verification sequence was completed. Merge, post-merge verification, annotated tagging, and public Version 1.0 release were then executed in accordance with the Version 1.0 Release Controls.
 
-**PASS — CONTROLLED RELEASE AUTHORIZED.** Reviews 001–007 pass for the proprietary Version 1.0 reference implementation. PR #10 is authorized for controlled merge after its final hosted status-record check passes. Version 1.0 tagging and public release remain conditional on successful post-merge verification of the exact `main` commit. The repository does not claim production capability.
+The Version 1.0 annotated tag and public release were created only after successful post-merge hosted verification of the exact main commit.
+
+Release determination
+
+FINAL DETERMINATION — VERSION 1.0 RELEASE ISSUED
+
+Reviews 001–007 passed. PR #10 was merged through the controlled release process. Hosted verification of the exact main commit passed. Annotated tag v1.0.0 was created, and the Version 1.0 release was issued.
+
+The repository continues to distinguish demonstrated, implemented, planned, and production capabilities. No production capability is implied.
